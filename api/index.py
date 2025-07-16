@@ -4,7 +4,8 @@
 from pathlib import Path
 import sys
 # Adiciona o diretório raiz do projeto (a pasta pai da pasta 'api') ao path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.append(str(PROJECT_ROOT))
 # ==============================================================================
 
 import os
@@ -14,13 +15,17 @@ from werkzeug.utils import secure_filename
 import tempfile
 import shutil
 
-# Suas importações de módulos agora funcionarão corretamente
 from core.video_processor import VideoProcessor
 from core.tiktok_transcription import transcribe_tiktok_video
 
-# Inicialização do App Flask
-app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
+# ==============================================================================
+# CORREÇÃO FINAL - DIZENDO AO FLASK ONDE FICA A PASTA 'templates'
+# ==============================================================================
+TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
+app = Flask(__name__, template_folder=TEMPLATE_DIR)
+# ==============================================================================
+
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
 # Variáveis globais para rastrear o progresso
 progress_data = {}
@@ -31,6 +36,7 @@ video_processor = VideoProcessor()
 def index():
     return render_template('index.html')
 
+# ... (todo o resto do seu código de rotas continua aqui, sem nenhuma alteração) ...
 @app.route('/upload', methods=['POST'])
 def upload_files():
     try:
@@ -215,7 +221,7 @@ def transcribe_tiktok():
                 transcription_results[session_id] = {'success': False, 'error': error_message}
                 app.logger.error(error_message)
         
-        thread = threading.Thread(target=transcribe_thread)
+        thread = threading.Thread(target=create_video_thread)
         thread.start()
         
         return jsonify({'success': True, 'session_id': session_id, 'message': 'Transcription started'})
@@ -244,5 +250,3 @@ def get_transcription(session_id):
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-# FIM DO ARQUIVO. Todo o bloco if __name__ == '__main__' foi removido por ser desnecessário no servidor.
