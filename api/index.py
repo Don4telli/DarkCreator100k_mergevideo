@@ -14,6 +14,17 @@ from core.tiktok_transcription import transcribe_tiktok_video
 # Inicialização do Flask, apontando para a pasta de templates na raiz.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
+import logging
+import sys
+
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s"
+)
+print("=== APP SUBIU!===")
+logging.info("=== LOGGING OK!===")
+
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
 # Configuração do Cloud Logging
@@ -29,6 +40,8 @@ video_processor = VideoProcessor()
 
 @app.route('/')
 def index():
+    print("Passei aqui na /")
+    logging.info("Passei aqui também na /")
     return render_template('index.html')
 
 @app.route('/create_video', methods=['POST'])
@@ -93,6 +106,8 @@ def create_video():
 
 @app.route('/transcribe_tiktok', methods=['POST'])
 def transcribe_tiktok():
+    print("Passei aqui na /transcribe_tiktok")
+    logging.info("Passei aqui também na /transcribe_tiktok")
     try:
         data = request.get_json()
         url = data.get('url')
