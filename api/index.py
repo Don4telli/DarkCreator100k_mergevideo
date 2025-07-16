@@ -108,14 +108,19 @@ def transcribe_tiktok():
         
         def transcribe_thread():
             try:
+                app.logger.info(f'Iniciando transcrição para URL: {url}')
                 cookies_path = '/app/cookies.txt' if os.path.exists('/app/cookies.txt') else None
+                app.logger.info(f'Caminho de cookies: {cookies_path}')
                 result = transcribe_tiktok_video(url, progress_callback, cookies_path)
                 transcription_results[session_id] = result
                 if result['success']:
                     progress_data[key]['progress'] = 100
                     progress_data[key]['message'] = 'Transcrição completa!'
+                    app.logger.info('Transcrição completada com sucesso')
                 else:
-                    progress_data[key]['message'] = f"Falha na transcrição: {result.get('error', 'Erro desconhecido')}"
+                    error_msg = f"Falha na transcrição: {result.get('error', 'Erro desconhecido')}"
+                    progress_data[key]['message'] = error_msg
+                    app.logger.error(error_msg)
             except Exception as e:
                 import traceback
                 error_message = f'Erro na thread: {e}\n{traceback.format_exc()}'
