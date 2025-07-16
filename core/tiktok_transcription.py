@@ -59,7 +59,14 @@ class TikTokTranscriber:
             return str(downloaded_files[0])
             
         except subprocess.CalledProcessError as e:
-            raise Exception(f"Failed to download TikTok video: {e.stderr}")
+            error_output = e.stderr.lower()
+            if "requiring login" in error_output:
+                if hasattr(self, 'cookies_path') and self.cookies_path and os.path.exists(self.cookies_path):
+                    raise Exception("Falha no download mesmo com cookies fornecidos. Verifique se os cookies estão válidos.")
+                else:
+                    raise Exception("Este vídeo do TikTok requer autenticação. Por favor, forneça um arquivo cookies.txt.")
+            else:
+                raise Exception(f"Falha no download do vídeo do TikTok: {e.stderr}")
         except Exception as e:
             raise Exception(f"Error downloading TikTok video: {str(e)}")
     

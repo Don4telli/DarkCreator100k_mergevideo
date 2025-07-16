@@ -109,9 +109,18 @@ def transcribe_tiktok():
     print("Passei aqui na /transcribe_tiktok")
     logging.info("Passei aqui também na /transcribe_tiktok")
     try:
-        data = request.get_json()
-        url = data.get('url')
+        url = request.form.get('url')
         if not url: return jsonify({'error': 'Nenhum link do TikTok fornecido.'}), 400
+        
+        cookies_file = request.files.get('cookies_file')
+        cookies_path = None
+        
+        if cookies_file and cookies_file.filename:
+            temp_dir = tempfile.mkdtemp()
+            cookies_path = os.path.join(temp_dir, 'cookies.txt')
+            cookies_file.save(cookies_path)
+        elif os.path.exists('/app/cookies.txt'):
+            cookies_path = '/app/cookies.txt'
         
         session_id = os.path.basename(tempfile.mkdtemp())
         key = f"{session_id}_transcribe"
@@ -124,7 +133,6 @@ def transcribe_tiktok():
         def transcribe_thread():
             try:
                 app.logger.info(f'Iniciando transcrição para URL: {url}')
-                cookies_path = '/app/cookies.txt' if os.path.exists('/app/cookies.txt') else None
                 app.logger.info(f'Caminho de cookies: {cookies_path}')
                 result = transcribe_tiktok_video(url, progress_callback, cookies_path)
                 transcription_results[session_id] = result
@@ -141,6 +149,9 @@ def transcribe_tiktok():
                 error_message = f'Erro na thread: {e}\n{traceback.format_exc()}'
                 progress_data[key]['message'] = error_message
                 app.logger.error(error_message)
+            finally:
+                if cookies_path and cookies_path != '/app/cookies.txt' and os.path.exists(cookies_path):
+                    os.remove(cookies_path)
         
         thread = threading.Thread(target=transcribe_thread)
         thread.start()
