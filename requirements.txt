@@ -1,0 +1,13 @@
+serverless-wsgi==3.0.1
+moviepy>=1.0.3
+numpy>=1.21.0
+Pillow>=8.0.0
+imageio>=2.9.0
+imageio-ffmpeg>=0.4.0
+requests>=2.25.0
+flask>=2.0.0
+opencv-python>=4.5.0
+yt-dlp>=2023.1.6
+deepgram-sdk>=3.0.0
+gunicorn>=20.1.0
+Werkzeug<3.0.0

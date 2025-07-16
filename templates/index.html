@@ -1,0 +1,496 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImageToVideo - Web GUI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .tool-buttons {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .tool-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 0 5px;
+            background: #f0f0f0;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        .tool-btn:hover {
+            background: #e0e0e0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        input[type="file"], input[type="number"], input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+        .progress-circle {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: conic-gradient(#007AFF 0%, #f0f0f0 0%);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .progress-circle::before {
+            content: '';
+            position: absolute;
+            width: 65px;
+            height: 65px;
+            background: #fff;
+            border-radius: 50%;
+        }
+        .progress-text {
+            position: relative;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        .progress-status-text {
+            margin-top: 15px;
+            color: #666;
+            font-size: 16px;
+        }
+        .message-area {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .error {
+            color: #FF3B30;
+            background: #FFE5E5;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            color: #34C759;
+            background: #E5F7E5;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .download-section {
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #ddd;
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 DarkNews Creator</h1>
+        <div class="tool-buttons">
+            <a href="https://chat.openai.com" target="_blank" class="tool-btn">ChatGPT</a>
+            <a href="https://www.tiktok.com" target="_blank" class="tool-btn">TikTok</a>
+            <a href="https://fish.audio/pt/" target="_blank" class="tool-btn">Fish Audio</a>
+        </div>
+
+        <!-- TikTok Transcription Section -->
+        <div id="tiktok-transcription-section">
+            <h2>TikTok Transcription</h2>
+            <form id="transcribeForm">
+                <div class="form-group">
+                    <label for="tiktok_url">TikTok Video URL:</label>
+                    <input type="text" id="tiktok_url" name="tiktok_url" placeholder="Cole o link do TikTok aqui...">
+                    <button type="button" id="pasteBtn" onclick="pasteFromClipboard()" style="padding: 6px 10px; background: #007AFF; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; width: auto; margin-top: 5px;">📋 Paste</button>
+                </div>
+                <button type="submit" id="transcribeBtn">Transcribe Video</button>
+            </form>
+            <div class="progress-container" id="transcribeProgressContainer">
+                <div class="progress-circle" id="transcribeProgressCircle">
+                    <div class="progress-text" id="transcribeProgressText">0%</div>
+                </div>
+                <div class="progress-status-text" id="transcribeProgressStatus"></div>
+            </div>
+            <div class="message-area" id="transcribeMessage"></div>
+            <div class="transcription-result" id="transcriptionResult" style="display: none;">
+                <h3>Transcription Result:</h3>
+                <textarea id="transcriptionText" readonly style="width: 100%; height: 200px; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-family: monospace;"></textarea>
+                <div style="margin-top: 10px; text-align: center;">
+                    <button type="button" id="copyTranscriptionBtn" onclick="copyTranscription()" style="padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 5px; cursor: pointer;">📄 Copy Transcription</button>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Create Video Section -->
+        <div id="create-video-section">
+            <h2>Create Video from Images</h2>
+            <form id="createVideoForm">
+                <div class="form-group">
+                    <label for="images">Select Images:</label>
+                    <input type="file" id="images" name="images" multiple required accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label for="audio">Select Audio (optional):</label>
+                    <input type="file" id="audio" name="audio" accept="audio/*">
+                </div>
+                <div class="form-group">
+                    <label for="output_name">Output Filename:</label>
+                    <input type="text" id="output_name" name="output_name" value="my_video.mp4">
+                </div>
+                <div class="form-group">
+                    <label for="aspect_ratio">Aspect Ratio:</label>
+                    <select id="aspect_ratio" name="aspect_ratio">
+                        <option value="9:16" selected>9:16 (Portrait)</option>
+                        <option value="16:9">16:9 (Landscape)</option>
+                        <option value="1:1">1:1 (Square)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fps">FPS:</label>
+                    <input type="number" id="fps" name="fps" value="30" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="green_screen_duration">Green Screen Duration (s):</label>
+                    <input type="number" id="green_screen_duration" name="green_screen_duration" value="5.0" step="0.1">
+                </div>
+                <button type="submit" id="createBtn">Create Video</button>
+            </form>
+            <div class="progress-container" id="createProgressContainer">
+                <div class="progress-circle" id="createProgressCircle">
+                    <div class="progress-text" id="createProgressText">0%</div>
+                </div>
+                <div class="progress-status-text" id="createProgressStatus"></div>
+            </div>
+            <div class="message-area" id="createMessage"></div>
+            <div class="download-section" id="createDownloadSection">
+                <button id="createDownloadBtn">Download Video</button>
+            </div>
+        </div>
+
+        <hr>
+
+    </div>
+
+    <script>
+        const createForm = document.getElementById('createVideoForm');
+        let progressInterval = null;
+
+        // Multi-video mode is now always enabled by default
+        const multiVideoMode = true;
+
+        // --- VIDEO CREATION LOGIC ---
+        createForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('createBtn');
+            const messageArea = document.getElementById('createMessage');
+            const progressContainer = document.getElementById('createProgressContainer');
+            const downloadSection = document.getElementById('createDownloadSection');
+            
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+            messageArea.innerHTML = '';
+            progressContainer.style.display = 'none';
+            downloadSection.style.display = 'none';
+
+            const formData = new FormData(createForm);
+
+            try {
+                const uploadRes = await fetch('/upload', { method: 'POST', body: formData });
+                const uploadData = await uploadRes.json();
+                if (!uploadData.success) throw new Error(uploadData.error);
+
+                const sessionId = uploadData.session_id;
+                btn.textContent = 'Creating...';
+
+                const createRes = await fetch('/create_video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        aspect_ratio: formData.get('aspect_ratio'),
+                        fps: formData.get('fps'),
+                        multi_video_mode: true,  // Always enabled
+                        green_screen_duration: formData.get('green_screen_duration')
+                    })
+                });
+
+                const createData = await createRes.json();
+                if (!createData.success) throw new Error(createData.error);
+
+                progressContainer.style.display = 'block';
+                startProgressCheck(sessionId, 'create');
+
+            } catch (err) {
+                messageArea.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+                btn.disabled = false;
+                btn.textContent = 'Create Video';
+            }
+        });
+
+        // --- COMMON PROGRESS & COMPLETION LOGIC ---
+        function startProgressCheck(sessionId, type) {
+            if (progressInterval) clearInterval(progressInterval);
+            progressInterval = setInterval(() => checkProgress(sessionId, type), 1000);
+        }
+
+        async function checkProgress(sessionId, type) {
+            try {
+                const res = await fetch(`/progress?session_id=${sessionId}&type=${type}`);
+                const data = await res.json();
+
+                const progressCircle = document.getElementById(`${type}ProgressCircle`);
+                const progressText = document.getElementById(`${type}ProgressText`);
+                const progressStatusText = document.getElementById(`${type}ProgressStatus`);
+                const messageArea = document.getElementById(`${type}Message`);
+
+                const progress = Math.min(data.progress, 100);
+                progressCircle.style.background = `conic-gradient(#007AFF ${progress * 3.6}deg, #f0f0f0 0%)`;
+                progressText.textContent = `${Math.round(progress)}%`;
+                progressStatusText.textContent = data.message;
+
+                if (data.message.toLowerCase().includes('error')) {
+                    clearInterval(progressInterval);
+                    messageArea.innerHTML = `<div class="error">${data.message}</div>`;
+                    resetButton(type);
+                } else if (data.progress >= 100) {
+                    clearInterval(progressInterval);
+                    messageArea.innerHTML = `<div class="success">${data.message}</div>`;
+                    resetButton(type);
+                    displayDownloads(sessionId, type, data.files);
+                }
+            } catch (err) {
+                clearInterval(progressInterval);
+                document.getElementById(`${type}Message`).innerHTML = `<div class="error">Failed to get progress.</div>`;
+                resetButton(type);
+            }
+        }
+
+        function resetButton(type) {
+            const btn = document.getElementById(type === 'create' ? 'createBtn' : 'splitBtn');
+            btn.disabled = false;
+            btn.textContent = type === 'create' ? 'Create Video' : 'Split Video';
+        }
+
+        function displayDownloads(sessionId, type, files) {
+            const downloadSection = document.getElementById(`${type}DownloadSection`);
+            downloadSection.style.display = 'block';
+            downloadSection.innerHTML = ''; // Clear previous content
+
+            if (type === 'create') {
+                const btn = document.createElement('button');
+                btn.textContent = 'Download Video';
+                btn.onclick = () => window.location.href = `/download/${sessionId}`;
+                downloadSection.appendChild(btn);
+            } else if (type === 'split' && files && files.length > 0) {
+                const list = document.createElement('ul');
+                files.forEach(file => {
+                    const item = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = `/download_segment/${sessionId}/${file}`;
+                    link.textContent = `Download ${file}`;
+                    link.style.display = 'block';
+                    link.style.margin = '5px 0';
+                    item.appendChild(link);
+                    list.appendChild(item);
+                });
+                list.style.listStyle = 'none';
+                list.style.padding = '0';
+                downloadSection.appendChild(list);
+            }
+        };
+
+        // --- TIKTOK TRANSCRIPTION LOGIC ---
+        const transcribeForm = document.getElementById('transcribeForm');
+        
+        transcribeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('transcribeBtn');
+            const messageArea = document.getElementById('transcribeMessage');
+            const progressContainer = document.getElementById('transcribeProgressContainer');
+            const resultSection = document.getElementById('transcriptionResult');
+            const transcriptionText = document.getElementById('transcriptionText');
+            
+            const tiktokUrl = document.getElementById('tiktok_url').value.trim();
+            
+            if (!tiktokUrl) {
+                messageArea.innerHTML = '<div class="error">Por favor, insira um link do TikTok.</div>';
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Transcribing...';
+            messageArea.innerHTML = '';
+            progressContainer.style.display = 'none';
+            resultSection.style.display = 'none';
+            
+            try {
+                const response = await fetch('/transcribe_tiktok', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: tiktokUrl })
+                });
+                
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+                
+                const sessionId = data.session_id;
+                progressContainer.style.display = 'block';
+                startProgressCheck(sessionId, 'transcribe');
+                
+            } catch (err) {
+                messageArea.innerHTML = `<div class="error">Erro: ${err.message}</div>`;
+                btn.disabled = false;
+                btn.textContent = 'Transcribe Video';
+            }
+        });
+        
+        // Override the resetButton function to handle transcribe button
+        const originalResetButton = resetButton;
+        resetButton = function(type) {
+            if (type === 'transcribe') {
+                const btn = document.getElementById('transcribeBtn');
+                btn.disabled = false;
+                btn.textContent = 'Transcribe Video';
+            } else {
+                originalResetButton(type);
+            }
+        };
+        
+        // Override the displayDownloads function to handle transcription results
+        const originalDisplayDownloads = displayDownloads;
+        displayDownloads = function(sessionId, type, files) {
+            if (type === 'transcribe') {
+                // For transcription, we'll get the result via a separate endpoint
+                fetch(`/get_transcription/${sessionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const resultSection = document.getElementById('transcriptionResult');
+                            const transcriptionText = document.getElementById('transcriptionText');
+                            transcriptionText.value = data.text;
+                            resultSection.style.display = 'block';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error getting transcription result:', err);
+                    });
+            } else {
+                originalDisplayDownloads(sessionId, type, files);
+            }
+        };
+
+        // --- UTILITY FUNCTIONS ---
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                const urlInput = document.getElementById('tiktok_url');
+                urlInput.value = text;
+                
+                // Check if it's a TikTok link
+                if (text.includes('tiktok.com') || text.includes('vm.tiktok.com')) {
+                    const messageArea = document.getElementById('transcribeMessage');
+                    messageArea.innerHTML = '<div class="success">TikTok link pasted successfully!</div>';
+                    setTimeout(() => messageArea.innerHTML = '', 3000);
+                } else {
+                    const messageArea = document.getElementById('transcribeMessage');
+                    messageArea.innerHTML = '<div class="error">This doesn\'t appear to be a TikTok link.</div>';
+                    setTimeout(() => messageArea.innerHTML = '', 3000);
+                }
+            } catch (err) {
+                console.error('Failed to read clipboard:', err);
+                const messageArea = document.getElementById('transcribeMessage');
+                messageArea.innerHTML = '<div class="error">Failed to paste from clipboard. Please paste manually.</div>';
+                setTimeout(() => messageArea.innerHTML = '', 3000);
+            }
+        }
+
+        function copyTranscription() {
+             const transcriptionText = document.getElementById('transcriptionText');
+             const text = transcriptionText.value;
+             
+             if (!text) {
+                 alert('No transcription text to copy!');
+                 return;
+             }
+             
+             navigator.clipboard.writeText(text).then(() => {
+                 const copyBtn = document.getElementById('copyTranscriptionBtn');
+                 const originalText = copyBtn.textContent;
+                 copyBtn.textContent = '✅ Copied!';
+                 copyBtn.style.background = '#34C759';
+                 
+                 setTimeout(() => {
+                     copyBtn.textContent = originalText;
+                     copyBtn.style.background = '#007AFF';
+                 }, 2000);
+             }).catch(err => {
+                 console.error('Failed to copy text:', err);
+                 alert('Failed to copy text to clipboard.');
+             });
+         }
+
+    </script>
+</body>
+</html>
+    
