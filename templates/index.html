@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ImageToVideo - Web GUI</title>
     <style>
-        /* Seu CSS continua exatamente o mesmo */
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
         .container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 800px; }
         h1, h2 { color: #333; text-align: center; margin-bottom: 15px; }
@@ -14,7 +13,7 @@
         .tool-btn:hover { background: #e0e0e0; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
-        input[type="file"], input[type="number"], input[type="text"], select { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        input[type="file"], input[type="number"], input[type="text"], select, textarea { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px; box-sizing: border-box; font-family: inherit; }
         button { background: #007AFF; color: white; border: none; padding: 12px 24px; border-radius: 5px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 10px; }
         button:disabled { background: #ccc; cursor: not-allowed; }
         .progress-container { margin-top: 20px; display: none; text-align: center; }
@@ -31,16 +30,90 @@
 </head>
 <body>
     <div class="container">
-        <!-- O HTML continua o mesmo, com os forms e inputs -->
         <h1>🎬 DarkNews Creator</h1>
-        <div class="tool-buttons"> ... </div>
-        <div id="tiktok-transcription-section"> ... </div>
+        <div class="tool-buttons">
+            <a href="https://chat.openai.com" target="_blank" class="tool-btn">ChatGPT</a>
+            <a href="https://www.tiktok.com" target="_blank" class="tool-btn">TikTok</a>
+            <a href="https://fish.audio/pt/" target="_blank" class="tool-btn">Fish Audio</a>
+        </div>
+
+        <!-- TikTok Transcription Section -->
+        <div id="tiktok-transcription-section">
+            <h2>TikTok Transcription</h2>
+            <form id="transcribeForm">
+                <div class="form-group">
+                    <label for="tiktok_url">TikTok Video URL:</label>
+                    <input type="text" id="tiktok_url" name="tiktok_url" placeholder="Cole o link do TikTok aqui...">
+                    <button type="button" id="pasteBtn" onclick="pasteFromClipboard()" style="padding: 6px 10px; background: #007AFF; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; width: auto; margin-top: 5px;">📋 Paste</button>
+                </div>
+                <button type="submit" id="transcribeBtn">Transcribe Video</button>
+            </form>
+            <div class="progress-container" id="transcribeProgressContainer">
+                <div class="progress-circle" id="transcribeProgressCircle">
+                    <div class="progress-text" id="transcribeProgressText">0%</div>
+                </div>
+                <div class="progress-status-text" id="transcribeProgressStatus"></div>
+            </div>
+            <div class="message-area" id="transcribeMessage"></div>
+            <div class="transcription-result" id="transcriptionResult" style="display: none;">
+                <h3>Transcription Result:</h3>
+                <textarea id="transcriptionText" readonly style="width: 100%; height: 200px; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-family: monospace;"></textarea>
+                <div style="margin-top: 10px; text-align: center;">
+                    <button type="button" id="copyTranscriptionBtn" onclick="copyTranscription()" style="padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 5px; cursor: pointer;">📄 Copy Transcription</button>
+                </div>
+            </div>
+        </div>
+
         <hr>
-        <div id="create-video-section"> ... </div>
+
+        <!-- Create Video Section -->
+        <div id="create-video-section">
+            <h2>Create Video from Images</h2>
+            <form id="createVideoForm">
+                <div class="form-group">
+                    <label for="images">Select Images:</label>
+                    <input type="file" id="images" name="images" multiple required accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label for="audio">Select Audio (optional):</label>
+                    <input type="file" id="audio" name="audio" accept="audio/*">
+                </div>
+                <div class="form-group">
+                    <label for="output_name">Output Filename:</label>
+                    <input type="text" id="output_name" name="output_name" value="my_video.mp4">
+                </div>
+                <div class="form-group">
+                    <label for="aspect_ratio">Aspect Ratio:</label>
+                    <select id="aspect_ratio" name="aspect_ratio">
+                        <option value="9:16" selected>9:16 (Portrait)</option>
+                        <option value="16:9">16:9 (Landscape)</option>
+                        <option value="1:1">1:1 (Square)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fps">FPS:</label>
+                    <input type="number" id="fps" name="fps" value="30" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="green_screen_duration">Green Screen Duration (s):</label>
+                    <input type="number" id="green_screen_duration" name="green_screen_duration" value="5.0" step="0.1">
+                </div>
+                <button type="submit" id="createBtn">Create Video</button>
+            </form>
+            <div class="progress-container" id="createProgressContainer">
+                <div class="progress-circle" id="createProgressCircle">
+                    <div class="progress-text" id="createProgressText">0%</div>
+                </div>
+                <div class="progress-status-text" id="createProgressStatus"></div>
+            </div>
+            <div class="message-area" id="createMessage"></div>
+            <div class="download-section" id="createDownloadSection">
+                <button id="createDownloadBtn">Download Video</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Variável global para o intervalo de progresso
         let progressInterval = null;
 
         // --- LÓGICA DE CRIAÇÃO DE VÍDEO ---
@@ -55,32 +128,26 @@
             btn.disabled = true;
             btn.textContent = 'Processando...';
             messageArea.innerHTML = '';
-            progressContainer.style.display = 'block'; // Mostra o progresso imediatamente
+            progressContainer.style.display = 'block';
             downloadSection.style.display = 'none';
 
-            // Usa FormData para enviar arquivos e dados juntos
             const formData = new FormData(createForm);
             
             try {
                 const response = await fetch('/create_video', {
                     method: 'POST',
                     body: formData,
-                    // Não defina Content-Type, o navegador faz isso com FormData
                 });
 
                 const result = await response.json();
-                if (!response.ok || !result.success) {
-                    throw new Error(result.error || 'Erro desconhecido no servidor.');
+                if (!response.ok) {
+                    throw new Error(result.error || `O servidor respondeu com status ${response.status}`);
                 }
                 
-                // Inicia a verificação do progresso com o session_id retornado
                 startProgressCheck(result.session_id, 'create');
 
             } catch (err) {
-                messageArea.innerHTML = `<div class="error">Erro: ${err.message}</div>`;
-                btn.disabled = false;
-                btn.textContent = 'Create Video';
-                progressContainer.style.display = 'none';
+                handleTaskEnd(null, 'create', false, err.message);
             }
         });
 
@@ -96,12 +163,11 @@
             btn.textContent = 'Transcrevendo...';
             messageArea.innerHTML = '';
             progressContainer.style.display = 'block';
+            document.getElementById('transcriptionResult').style.display = 'none';
 
             const tiktokUrl = document.getElementById('tiktok_url').value.trim();
             if (!tiktokUrl) {
-                messageArea.innerHTML = '<div class="error">Por favor, insira um link do TikTok.</div>';
-                btn.disabled = false;
-                btn.textContent = 'Transcribe Video';
+                handleTaskEnd(null, 'transcribe', false, 'Por favor, insira um link do TikTok.');
                 return;
             }
             
@@ -113,24 +179,21 @@
                 });
 
                 const result = await response.json();
-                if (!response.ok || !result.success) {
-                    throw new Error(result.error || 'Erro desconhecido no servidor.');
+                if (!response.ok) {
+                    throw new Error(result.error || `O servidor respondeu com status ${response.status}`);
                 }
                 
                 startProgressCheck(result.session_id, 'transcribe');
 
             } catch (err) {
-                messageArea.innerHTML = `<div class="error">Erro: ${err.message}</div>`;
-                btn.disabled = false;
-                btn.textContent = 'Transcribe Video';
-                progressContainer.style.display = 'none';
+                handleTaskEnd(null, 'transcribe', false, err.message);
             }
         });
 
-        // --- FUNÇÕES COMUNS ---
+        // --- FUNÇÕES COMUNS DE UI ---
         function startProgressCheck(sessionId, type) {
             if (progressInterval) clearInterval(progressInterval);
-            progressInterval = setInterval(() => checkProgress(sessionId, type), 2000); // Verifica a cada 2 segundos
+            progressInterval = setInterval(() => checkProgress(sessionId, type), 2500);
         }
 
         async function checkProgress(sessionId, type) {
@@ -145,17 +208,16 @@
                 const progressStatusText = document.getElementById(`${type}ProgressStatus`);
                 
                 const progress = Math.round(data.progress || 0);
-                progressCircle.style.background = `conic-gradient(#007AFF ${progress * 3.6}deg, #f0f0f0 0%)`;
+                progressCircle.style.background = `conic-gradient(#007AFF ${progress * 3.6}deg, #f0f0f0 ${progress * 3.6}deg)`;
                 progressTextElem.textContent = `${progress}%`;
                 progressStatusText.textContent = data.message;
 
-                if (data.message && data.message.toLowerCase().includes('erro')) {
+                if (data.message && (data.message.toLowerCase().includes('erro') || data.message.toLowerCase().includes('falha'))) {
                     handleTaskEnd(sessionId, type, false, data.message);
                 } else if (progress >= 100) {
                     handleTaskEnd(sessionId, type, true, data.message);
                 }
             } catch (err) {
-                console.error('Erro ao verificar progresso:', err);
                 handleTaskEnd(null, type, false, 'Falha ao obter progresso.');
             }
         }
@@ -192,14 +254,33 @@
                     document.getElementById('transcriptionText').value = data.text;
                     document.getElementById('transcriptionResult').style.display = 'block';
                 } else {
-                    document.getElementById('transcribeMessage').innerHTML += `<div class="error">${data.error}</div>`;
+                    handleTaskEnd(sessionId, 'transcribe', false, data.error);
                 }
             } catch (err) {
-                 document.getElementById('transcribeMessage').innerHTML += `<div class="error">Falha ao buscar o resultado da transcrição.</div>`;
+                 handleTaskEnd(sessionId, 'transcribe', false, 'Falha ao buscar o resultado da transcrição.');
             }
         }
         
-        // As funções de utilidade (paste, copy) continuam as mesmas
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('tiktok_url').value = text;
+            } catch (err) {
+                alert('Failed to read clipboard contents.');
+            }
+        }
+
+        function copyTranscription() {
+             const transcriptionText = document.getElementById('transcriptionText');
+             navigator.clipboard.writeText(transcriptionText.value).then(() => {
+                 const copyBtn = document.getElementById('copyTranscriptionBtn');
+                 const originalText = copyBtn.textContent;
+                 copyBtn.textContent = '✅ Copied!';
+                 setTimeout(() => { copyBtn.textContent = originalText; }, 2000);
+             }).catch(err => {
+                 alert('Failed to copy text.');
+             });
+         }
     </script>
 </body>
 </html>
