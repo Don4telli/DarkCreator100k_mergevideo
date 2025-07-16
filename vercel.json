@@ -2,9 +2,6 @@
   "version": 2,
   "builds": [
     {
-      "use": "vercel-ffmpeg"
-    },
-    {
       "src": "gui_web.py",
       "use": "@vercel/python"
     }
