@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Múltiplo TikTok - Dark Creator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .form-section h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .url-input-container {
+            margin-bottom: 15px;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .url-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .setting-item label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .setting-item input, .setting-item select {
+            padding: 8px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .progress-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .progress-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .progress-stat {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .progress-stat .number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .progress-stat .label {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+
+        .results-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+            display: none;
+        }
+
+        .video-result {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .video-info {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .video-url {
+            font-weight: 600;
+            color: #495057;
+            word-break: break-all;
+            margin-bottom: 5px;
+        }
+
+        .video-status {
+            font-size: 0.9em;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .video-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .download-link {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+
+        .download-link:hover {
+            background: #0056b3;
+        }
+
+        .url-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+
+        .url-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #e9ecef;
+            word-break: break-all;
+        }
+
+        .url-item:last-child {
+            border-bottom: none;
+        }
+
+        .remove-url {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .remove-url:hover {
+            background: #c82333;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .url-controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .video-result {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .video-actions {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Download Múltiplo TikTok</h1>
+        
+        <div class="form-section">
+            <h3>📝 URLs do TikTok</h3>
+            <div class="url-input-container">
+                <input type="text" id="urlInput" class="url-input" placeholder="Cole aqui o link do TikTok e pressione Enter ou clique em Adicionar">
+            </div>
+            
+            <div class="url-controls">
+                <button class="btn btn-secondary" onclick="addUrl()">➕ Adicionar URL</button>
+                <button class="btn btn-secondary" onclick="clearUrls()">🗑️ Limpar Todas</button>
+                <button class="btn btn-secondary" onclick="loadSampleUrls()">📋 URLs de Exemplo</button>
+            </div>
+            
+            <div id="urlList" class="url-list" style="display: none;"></div>
+        </div>
+
+        <div class="form-section">
+            <h3>⚙️ Configurações</h3>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label for="maxWorkers">Downloads Simultâneos:</label>
+                    <select id="maxWorkers">
+                        <option value="1">1 (Mais Lento)</option>
+                        <option value="2">2</option>
+                        <option value="3" selected>3 (Recomendado)</option>
+                        <option value="4">4</option>
+                        <option value="5">5 (Mais Rápido)</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="sessionId">ID da Sessão (Opcional):</label>
+                    <input type="text" id="sessionId" placeholder="Deixe vazio para gerar automaticamente">
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="startDownload()" id="downloadBtn">
+                🚀 Iniciar Download
+            </button>
+        </div>
+
+        <div id="progressSection" class="progress-section">
+            <h3>📊 Progresso do Download</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Preparando...</div>
+            
+            <div class="progress-details">
+                <div class="progress-stat">
+                    <div class="number" id="totalVideos">0</div>
+                    <div class="label">Total</div>
+                </div>
+                <div class="progress-stat">
+                    <div class="number" id="completedVideos">0</div>
+                    <div class="label">Concluídos</div>
+                </div>
+                <div class="progress-stat">
+                    <div class="number" id="failedVideos">0</div>
+                    <div class="label">Falharam</div>
+                </div>
+                <div class="progress-stat">
+                    <div class="number" id="progressPercent">0%</div>
+                    <div class="label">Progresso</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsSection" class="results-section">
+            <h3>📁 Resultados do Download</h3>
+            <div id="resultsContainer"></div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/" class="btn btn-secondary">🏠 Voltar ao Início</a>
+        </div>
+    </div>
+
+    <script>
+        let urls = [];
+        let currentSessionId = null;
+        let progressInterval = null;
+
+        // Add URL to list
+        function addUrl() {
+            const input = document.getElementById('urlInput');
+            const url = input.value.trim();
+            
+            if (!url) {
+                alert('Por favor, insira uma URL válida.');
+                return;
+            }
+            
+            if (!url.includes('tiktok.com')) {
+                alert('Por favor, insira uma URL válida do TikTok.');
+                return;
+            }
+            
+            if (urls.includes(url)) {
+                alert('Esta URL já foi adicionada.');
+                return;
+            }
+            
+            if (urls.length >= 20) {
+                alert('Máximo de 20 URLs permitidas.');
+                return;
+            }
+            
+            urls.push(url);
+            input.value = '';
+            updateUrlList();
+        }
+
+        // Remove URL from list
+        function removeUrl(index) {
+            urls.splice(index, 1);
+            updateUrlList();
+        }
+
+        // Clear all URLs
+        function clearUrls() {
+            urls = [];
+            updateUrlList();
+        }
+
+        // Load sample URLs for testing
+        function loadSampleUrls() {
+            const samples = [
+                'https://www.tiktok.com/@username/video/1234567890',
+                'https://www.tiktok.com/@username/video/1234567891',
+                'https://www.tiktok.com/@username/video/1234567892'
+            ];
+            
+            urls = [...samples];
+            updateUrlList();
+        }
+
+        // Update URL list display
+        function updateUrlList() {
+            const urlList = document.getElementById('urlList');
+            
+            if (urls.length === 0) {
+                urlList.style.display = 'none';
+                return;
+            }
+            
+            urlList.style.display = 'block';
+            urlList.innerHTML = urls.map((url, index) => `
+                <div class="url-item">
+                    <span>${url}</span>
+                    <button class="remove-url" onclick="removeUrl(${index})">❌</button>
+                </div>
+            `).join('');
+        }
+
+        // Start download process
+        async function startDownload() {
+            if (urls.length === 0) {
+                alert('Por favor, adicione pelo menos uma URL do TikTok.');
+                return;
+            }
+            
+            const maxWorkers = parseInt(document.getElementById('maxWorkers').value);
+            const sessionId = document.getElementById('sessionId').value.trim() || null;
+            
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = '⏳ Iniciando...';
+            
+            try {
+                const response = await fetch('/download_multiple_tiktoks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        urls: urls,
+                        max_workers: maxWorkers,
+                        session_id: sessionId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentSessionId = result.session_id;
+                    showProgress();
+                    startProgressTracking();
+                } else {
+                    throw new Error(result.error || 'Erro desconhecido');
+                }
+                
+            } catch (error) {
+                alert(`Erro ao iniciar download: ${error.message}`);
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = '🚀 Iniciar Download';
+            }
+        }
+
+        // Show progress section
+        function showProgress() {
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+        }
+
+        // Start progress tracking
+        function startProgressTracking() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            
+            progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/multi_download_progress/${currentSessionId}`);
+                    const progress = await response.json();
+                    
+                    updateProgress(progress);
+                    
+                    if (progress.progress >= 100 || progress.error) {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                        
+                        if (progress.progress >= 100) {
+                            await loadResults();
+                        }
+                        
+                        const downloadBtn = document.getElementById('downloadBtn');
+                        downloadBtn.disabled = false;
+                        downloadBtn.textContent = '🚀 Iniciar Download';
+                    }
+                    
+                } catch (error) {
+                    console.error('Erro ao obter progresso:', error);
+                }
+            }, 2000);
+        }
+
+        // Update progress display
+        function updateProgress(progress) {
+            document.getElementById('progressFill').style.width = `${progress.progress || 0}%`;
+            document.getElementById('progressText').textContent = progress.message || 'Processando...';
+            document.getElementById('totalVideos').textContent = progress.total_videos || urls.length;
+            document.getElementById('completedVideos').textContent = progress.completed || 0;
+            document.getElementById('failedVideos').textContent = progress.failed || 0;
+            document.getElementById('progressPercent').textContent = `${Math.round(progress.progress || 0)}%`;
+        }
+
+        // Load and display results
+        async function loadResults() {
+            try {
+                const response = await fetch(`/multi_download_result/${currentSessionId}`);
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Erro ao carregar resultados:', error);
+                document.getElementById('resultsContainer').innerHTML = `
+                    <div class="alert alert-error">
+                        Erro ao carregar resultados: ${error.message}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        // Display download results
+        function displayResults(result) {
+            const container = document.getElementById('resultsContainer');
+            
+            let html = `
+                <div class="alert alert-success">
+                    ✅ Download concluído! ${result.successful_downloads}/${result.total_videos} vídeos baixados com sucesso.
+                </div>
+            `;
+            
+            if (result.download_results && result.download_results.length > 0) {
+                result.download_results.forEach((video, index) => {
+                    const statusClass = video.success ? 'status-success' : 'status-error';
+                    const statusText = video.success ? '✅ Sucesso' : '❌ Falhou';
+                    
+                    html += `
+                        <div class="video-result">
+                            <div class="video-info">
+                                <div class="video-url">${video.url}</div>
+                                <div class="video-status ${statusClass}">${statusText}</div>
+                                ${video.error ? `<div style="color: #721c24; font-size: 0.9em; margin-top: 5px;">${video.error}</div>` : ''}
+                            </div>
+                            <div class="video-actions">
+                                ${getDownloadLinks(video, result.storage_results)}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Get download links for a video
+        function getDownloadLinks(video, storageResults) {
+            if (!video.success || !storageResults || !storageResults.uploaded_files) {
+                return '<span style="color: #6c757d;">Nenhum arquivo disponível</span>';
+            }
+            
+            const videoFiles = storageResults.uploaded_files.filter(f => 
+                f.video_index === video.index && f.file_type === 'video'
+            );
+            
+            const audioFiles = storageResults.uploaded_files.filter(f => 
+                f.video_index === video.index && f.file_type === 'audio'
+            );
+            
+            let links = '';
+            
+            videoFiles.forEach(file => {
+                if (file.signed_url) {
+                    links += `<a href="${file.signed_url}" class="download-link" target="_blank">📹 Vídeo</a>`;
+                }
+            });
+            
+            audioFiles.forEach(file => {
+                if (file.signed_url) {
+                    links += `<a href="${file.signed_url}" class="download-link" target="_blank">🎵 Áudio</a>`;
+                }
+            });
+            
+            return links || '<span style="color: #6c757d;">Links não disponíveis</span>';
+        }
+
+        // Handle Enter key in URL input
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addUrl();
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+        });
+    </script>
+</body>
+</html>
