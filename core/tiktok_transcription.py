@@ -37,38 +37,56 @@ class TikTokTranscriber:
         output_template = os.path.join(output_dir, "tiktok_video.%(ext)s")
         
         try:
-            # Use yt-dlp to download the video
+            # Comando yt-dlp otimizado para Cloud Run
             cmd = [
                 "yt-dlp",
                 "--extract-audio",
                 "--audio-format", "mp3",
+                "--audio-quality", "0",  # Melhor qualidade
+                "--no-playlist",
+                "--no-warnings",
+                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                 "--output", output_template,
                 url
             ]
-            if hasattr(self, 'cookies_path') and self.cookies_path and os.path.exists(self.cookies_path):
-                cmd.insert(-1, "--cookies")
-                cmd.insert(-1, self.cookies_path)
             
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            # Adiciona cookies se disponível
+            if hasattr(self, 'cookies_path') and self.cookies_path and os.path.exists(self.cookies_path):
+                cmd.extend(["--cookies", self.cookies_path])
+            
+            # Executa com timeout
+            result = subprocess.run(
+                cmd, 
+                capture_output=True, 
+                text=True, 
+                check=True,
+                timeout=300  # 5 minutos de timeout
+            )
             
             # Find the downloaded file
             downloaded_files = list(Path(output_dir).glob("tiktok_video.*"))
             if not downloaded_files:
-                raise Exception("No file was downloaded")
+                raise Exception("Nenhum arquivo foi baixado")
             
             return str(downloaded_files[0])
             
+        except subprocess.TimeoutExpired:
+            raise Exception("Timeout no download do vídeo (5 minutos)")
         except subprocess.CalledProcessError as e:
-            error_output = e.stderr.lower()
-            if "requiring login" in error_output:
+            error_output = e.stderr.lower() if e.stderr else ""
+            if "private" in error_output or "login" in error_output or "requiring login" in error_output:
                 if hasattr(self, 'cookies_path') and self.cookies_path and os.path.exists(self.cookies_path):
                     raise Exception("Falha no download mesmo com cookies fornecidos. Verifique se os cookies estão válidos.")
                 else:
-                    raise Exception("Este vídeo do TikTok requer autenticação. Por favor, forneça um arquivo cookies.txt.")
+                    raise Exception("Vídeo privado ou requer autenticação")
+            elif "not available" in error_output or "unavailable" in error_output:
+                raise Exception("Vídeo não disponível ou removido")
+            elif "network" in error_output or "connection" in error_output:
+                raise Exception("Erro de conexão de rede")
             else:
-                raise Exception(f"Falha no download do vídeo do TikTok: {e.stderr}")
+                raise Exception(f"Erro no download: {e.stderr or 'Erro desconhecido'}")
         except Exception as e:
-            raise Exception(f"Error downloading TikTok video: {str(e)}")
+            raise Exception(f"Erro no download do vídeo do TikTok: {str(e)}")
     
     def transcribe_audio(self, audio_path):
         """

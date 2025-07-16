@@ -143,23 +143,16 @@ def transcribe_tiktok():
         url = request.form.get('url')
         if not url: return jsonify({'error': 'Nenhum link do TikTok fornecido.'}), 400
         
-        cookies_file = request.files.get('cookies_file')
         cookies_path = None
-        
-        if cookies_file and cookies_file.filename:
-            temp_dir = tempfile.mkdtemp(dir='/tmp')
-            cookies_path = os.path.join(temp_dir, 'cookies.txt')
-            cookies_file.save(cookies_path)
-            app.logger.info(f'[INFO] Arquivo de cookies salvo temporariamente em {cookies_path}')
-        elif os.path.exists('/app/cookies.txt'):
+        if os.path.exists('/app/cookies.txt'):
             cookies_path = '/app/cookies.txt'
             app.logger.info(f'[INFO] Usando cookies existentes em {cookies_path}')
         
         app.logger.info(f'[INFO] URL do TikTok recebida: {url}')
         if cookies_path:
-            app.logger.info(f'[INFO] 1 arquivo de cookies recebido')
+            app.logger.info('[INFO] Usando arquivo de cookies do sistema')
         else:
-            app.logger.info('[INFO] Nenhum arquivo de cookies recebido')
+            app.logger.info('[INFO] Nenhum arquivo de cookies disponível')
         
         session_id = os.path.basename(tempfile.mkdtemp())
         key = f"{session_id}_transcribe"
@@ -188,9 +181,6 @@ def transcribe_tiktok():
                 progress_data[key]['message'] = error_message
                 app.logger.error(error_message)
             finally:
-                if cookies_path and cookies_path != '/app/cookies.txt' and os.path.exists(cookies_path):
-                    os.remove(cookies_path)
-                    app.logger.info(f'[INFO] Arquivo de cookies temporário removido: {cookies_path}')
                 app.logger.info('[INFO] Processo de transcrição finalizado')
         
         thread = threading.Thread(target=transcribe_thread)
