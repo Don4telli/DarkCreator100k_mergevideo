@@ -19,4 +19,5 @@ COPY . .
 
 # Comando para iniciar seu servidor web quando o contêiner rodar
 # Ele diz ao Gunicorn para rodar o objeto 'app' que está no arquivo 'api/index.py'
-CMD ["gunicorn", "--bind", "0.0.0.0:10000", "api.index:app"]
+# Linha Nova e Correta:
+CMD ["gunicorn", "--bind", "0.0.0.0:${PORT}", "api.index:app"]
