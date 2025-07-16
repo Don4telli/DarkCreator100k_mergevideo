@@ -16,6 +16,38 @@ class TikTokTranscriber:
         self.api_key = get_deepgram_api_key()
         self.config = get_deepgram_config()
     
+    def _normalize_tiktok_url(self, url):
+        """
+        Normalize TikTok URL to handle different formats.
+        
+        Args:
+            url (str): Original TikTok URL
+            
+        Returns:
+            str: Normalized TikTok URL
+        """
+        import re
+        
+        # Remove whitespace
+        url = url.strip()
+        
+        # Handle vm.tiktok.com short URLs
+        if 'vm.tiktok.com' in url:
+            return url
+        
+        # Handle www.tiktok.com URLs
+        if 'tiktok.com' in url:
+            return url
+        
+        # Handle mobile URLs (m.tiktok.com)
+        if 'm.tiktok.com' in url:
+            url = url.replace('m.tiktok.com', 'www.tiktok.com')
+            return url
+        
+        # If it doesn't look like a TikTok URL, return as is
+        # yt-dlp will handle the error
+        return url
+    
     def download_tiktok_video(self, url, output_dir=None):
         """
         Download TikTok video using yt-dlp.
@@ -33,6 +65,9 @@ class TikTokTranscriber:
         # Ensure output directory exists
         os.makedirs(output_dir, exist_ok=True)
         
+        # Normalize TikTok URL to handle different formats
+        url = self._normalize_tiktok_url(url)
+        
         # Output template for yt-dlp
         output_template = os.path.join(output_dir, "tiktok_video.%(ext)s")
         
@@ -45,7 +80,8 @@ class TikTokTranscriber:
                 "--audio-quality", "0",  # Melhor qualidade
                 "--no-playlist",
                 "--no-warnings",
-                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "--referer", "https://www.tiktok.com/",
                 "--output", output_template,
                 url
             ]
@@ -74,17 +110,27 @@ class TikTokTranscriber:
             raise Exception("Timeout no download do vídeo (5 minutos)")
         except subprocess.CalledProcessError as e:
             error_output = e.stderr.lower() if e.stderr else ""
-            if "private" in error_output or "login" in error_output or "requiring login" in error_output:
+            stdout_output = e.stdout.lower() if e.stdout else ""
+            combined_output = f"{error_output} {stdout_output}"
+            
+            if "private" in combined_output or "login" in combined_output or "requiring login" in combined_output:
                 if hasattr(self, 'cookies_path') and self.cookies_path and os.path.exists(self.cookies_path):
                     raise Exception("Falha no download mesmo com cookies fornecidos. Verifique se os cookies estão válidos.")
                 else:
-                    raise Exception("Vídeo privado ou requer autenticação")
-            elif "not available" in error_output or "unavailable" in error_output:
+                    raise Exception("Vídeo privado ou requer autenticação. Tente adicionar cookies.txt")
+            elif "not available" in combined_output or "unavailable" in combined_output:
                 raise Exception("Vídeo não disponível ou removido")
-            elif "network" in error_output or "connection" in error_output:
+            elif "network" in combined_output or "connection" in combined_output:
                 raise Exception("Erro de conexão de rede")
+            elif "unsupported url" in combined_output or "no video" in combined_output:
+                raise Exception(f"URL não reconhecida como válida do TikTok. Verifique se o link está correto: {url}")
+            elif "extractor" in combined_output and "failed" in combined_output:
+                raise Exception(f"Falha ao processar o link do TikTok. Verifique se é um link válido: {url}")
             else:
-                raise Exception(f"Erro no download: {e.stderr or 'Erro desconhecido'}")
+                # Log mais detalhado para debug
+                error_details = f"stderr: {e.stderr}" if e.stderr else "sem stderr"
+                stdout_details = f"stdout: {e.stdout}" if e.stdout else "sem stdout"
+                raise Exception(f"Erro no download do TikTok. URL: {url}. Detalhes: {error_details}, {stdout_details}")
         except Exception as e:
             raise Exception(f"Erro no download do vídeo do TikTok: {str(e)}")
     
