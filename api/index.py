@@ -1,23 +1,29 @@
 # ==============================================================================
-# api/index.py - VERSÃO FINAL CORRIGIDA
+# api/index.py - VERSÃO FINALÍSSIMA CORRIGIDA
 # ==============================================================================
-from pathlib import Path
+# PRIMEIRO, configuramos o caminho do projeto. NADA vem antes disso.
 import sys
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+# AGORA, com o caminho corrigido, podemos importar todo o resto.
 import os
 import threading
 import tempfile
 import shutil
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.append(str(PROJECT_ROOT))
-
 from core.video_processor import VideoProcessor
 from core.tiktok_transcription import transcribe_tiktok_video
 
+# ==============================================================================
+# INICIALIZAÇÃO CORRETA DO FLASK
+# ==============================================================================
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
+# ==============================================================================
+
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
 progress_data = {}
