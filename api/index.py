@@ -163,12 +163,47 @@ def create_video():
         app.logger.error(f'[ERROR] Erro em /create_video: {traceback.format_exc()}')
         return jsonify({'error': str(e)}), 500
 
+def is_valid_tiktok_url(url):
+    """
+    Validate if the URL is a valid TikTok URL.
+    
+    Args:
+        url (str): URL to validate
+        
+    Returns:
+        bool: True if valid TikTok URL, False otherwise
+    """
+    import re
+    
+    if not url or not isinstance(url, str):
+        return False
+    
+    url = url.strip().lower()
+    
+    # TikTok URL patterns
+    tiktok_patterns = [
+        r'.*tiktok\.com.*',  # Any tiktok.com domain
+        r'.*vm\.tiktok\.com.*',  # Short URLs
+        r'.*m\.tiktok\.com.*',  # Mobile URLs
+        r'.*www\.tiktok\.com.*',  # WWW URLs
+    ]
+    
+    for pattern in tiktok_patterns:
+        if re.match(pattern, url):
+            return True
+    
+    return False
+
 @app.route('/transcribe_tiktok', methods=['POST'])
 def transcribe_tiktok():
     app.logger.info('[INFO] POST /transcribe_tiktok iniciado')
     try:
         url = request.form.get('url')
         if not url: return jsonify({'error': 'Nenhum link do TikTok fornecido.'}), 400
+        
+        # Validate TikTok URL
+        if not is_valid_tiktok_url(url):
+            return jsonify({'error': 'URL fornecida não é um link válido do TikTok. Verifique se o link contém "tiktok.com".'}), 400
         
         cookies_path = None
         if os.path.exists('/app/cookies.txt'):

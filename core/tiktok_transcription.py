@@ -28,24 +28,29 @@ class TikTokTranscriber:
         """
         import re
         
-        # Remove whitespace
+        # Remove whitespace and convert to lowercase for checking
         url = url.strip()
+        url_lower = url.lower()
         
-        # Handle vm.tiktok.com short URLs
-        if 'vm.tiktok.com' in url:
+        # Ensure URL has protocol
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+            url_lower = url.lower()
+        
+        # Handle different TikTok URL formats
+        if 'vm.tiktok.com' in url_lower:
             return url
-        
-        # Handle www.tiktok.com URLs
-        if 'tiktok.com' in url:
-            return url
-        
-        # Handle mobile URLs (m.tiktok.com)
-        if 'm.tiktok.com' in url:
-            url = url.replace('m.tiktok.com', 'www.tiktok.com')
+        elif 'm.tiktok.com' in url_lower:
+            # Convert mobile URLs to www
+            return url.replace('m.tiktok.com', 'www.tiktok.com')
+        elif 'tiktok.com' in url_lower:
+            # Ensure www prefix for consistency
+            if 'www.tiktok.com' not in url_lower:
+                return url.replace('tiktok.com', 'www.tiktok.com')
             return url
         
         # If it doesn't look like a TikTok URL, return as is
-        # yt-dlp will handle the error
+        # The validation should have caught this earlier
         return url
     
     def download_tiktok_video(self, url, output_dir=None):
@@ -123,9 +128,11 @@ class TikTokTranscriber:
             elif "network" in combined_output or "connection" in combined_output:
                 raise Exception("Erro de conexão de rede")
             elif "unsupported url" in combined_output or "no video" in combined_output:
-                raise Exception(f"URL não reconhecida como válida do TikTok. Verifique se o link está correto: {url}")
+                raise Exception(f"URL não reconhecida pelo yt-dlp. Verifique se o link do TikTok está correto e completo: {url}")
             elif "extractor" in combined_output and "failed" in combined_output:
-                raise Exception(f"Falha ao processar o link do TikTok. Verifique se é um link válido: {url}")
+                raise Exception(f"Falha no extrator do TikTok. O link pode estar incorreto ou o vídeo pode ter sido removido: {url}")
+            elif "regex" in combined_output or "pattern" in combined_output:
+                raise Exception(f"Formato de URL do TikTok não reconhecido. Certifique-se de usar um link completo do TikTok: {url}")
             else:
                 # Log mais detalhado para debug
                 error_details = f"stderr: {e.stderr}" if e.stderr else "sem stderr"
