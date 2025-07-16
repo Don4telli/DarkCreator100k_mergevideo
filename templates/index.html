@@ -33,39 +33,10 @@
         <h1>🎬 DarkNews Creator</h1>
         <div class="tool-buttons">
             <a href="https://chat.openai.com" target="_blank" class="tool-btn">ChatGPT</a>
-            <a href="https://www.tiktok.com" target="_blank" class="tool-btn">TikTok</a>
             <a href="https://fish.audio/pt/" target="_blank" class="tool-btn">Fish Audio</a>
         </div>
 
-        <!-- TikTok Transcription Section -->
-        <div id="tiktok-transcription-section">
-            <h2>TikTok Transcription</h2>
-            <form id="transcribeForm">
-                <div class="form-group">
-                    <label for="tiktok_url">TikTok Video URL:</label>
-                    <input type="text" id="tiktok_url" name="tiktok_url" placeholder="Cole o link do TikTok aqui...">
-                    <button type="button" id="pasteBtn" onclick="pasteFromClipboard()" style="padding: 6px 10px; background: #007AFF; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; width: auto; margin-top: 5px;">📋 Paste</button>
-                </div>
 
-                <button type="submit" id="transcribeBtn">Transcribe Video</button>
-            </form>
-            <div class="progress-container" id="transcribeProgressContainer">
-                <div class="progress-circle" id="transcribeProgressCircle">
-                    <div class="progress-text" id="transcribeProgressText">0%</div>
-                </div>
-                <div class="progress-status-text" id="transcribeProgressStatus"></div>
-            </div>
-            <div class="message-area" id="transcribeMessage"></div>
-            <div class="transcription-result" id="transcriptionResult" style="display: none;">
-                <h3>Transcription Result:</h3>
-                <textarea id="transcriptionText" readonly style="width: 100%; height: 200px; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-family: monospace;"></textarea>
-                <div style="margin-top: 10px; text-align: center;">
-                    <button type="button" id="copyTranscriptionBtn" onclick="copyTranscription()" style="padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 5px; cursor: pointer;">📄 Copy Transcription</button>
-                </div>
-            </div>
-        </div>
-
-        <hr>
 
         <!-- Create Video Section -->
         <div id="create-video-section">
@@ -152,45 +123,7 @@
             }
         });
 
-        // --- LÓGICA DE TRANSCRIÇÃO DE TIKTOK ---
-        const transcribeForm = document.getElementById('transcribeForm');
-        transcribeForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('transcribeBtn');
-            const messageArea = document.getElementById('transcribeMessage');
-            const progressContainer = document.getElementById('transcribeProgressContainer');
-            
-            btn.disabled = true;
-            btn.textContent = 'Transcrevendo...';
-            messageArea.innerHTML = '';
-            progressContainer.style.display = 'block';
-            document.getElementById('transcriptionResult').style.display = 'none';
 
-            const tiktokUrl = document.getElementById('tiktok_url').value.trim();
-            if (!tiktokUrl) {
-                handleTaskEnd(null, 'transcribe', false, 'Por favor, insira um link do TikTok.');
-                return;
-            }
-
-            const formData = new FormData(transcribeForm);
-            
-            try {
-                const response = await fetch('/transcribe_tiktok', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.error || `O servidor respondeu com status ${response.status}`);
-                }
-                
-                startProgressCheck(result.session_id, 'transcribe');
-
-            } catch (err) {
-                handleTaskEnd(null, 'transcribe', false, err.message);
-            }
-        });
 
         // --- FUNÇÕES COMUNS DE UI ---
         function startProgressCheck(sessionId, type) {
@@ -238,51 +171,10 @@
                     downloadSection.innerHTML = `<button onclick="window.location.href='/download/${sessionId}'">Download Video</button>`;
                     downloadSection.style.display = 'block';
                 }
-            } else if (type === 'transcribe') {
-                const transcribeBtn = document.getElementById('transcribeBtn');
-                transcribeBtn.disabled = false;
-                transcribeBtn.textContent = 'Transcribe Video';
-                if (success && sessionId) {
-                    fetchAndDisplayTranscription(sessionId);
-                }
             }
         }
 
-        async function fetchAndDisplayTranscription(sessionId) {
-            try {
-                const response = await fetch(`/get_transcription/${sessionId}`);
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('transcriptionText').value = data.text;
-                    document.getElementById('transcriptionResult').style.display = 'block';
-                } else {
-                    handleTaskEnd(sessionId, 'transcribe', false, data.error);
-                }
-            } catch (err) {
-                 handleTaskEnd(sessionId, 'transcribe', false, 'Falha ao buscar o resultado da transcrição.');
-            }
-        }
-        
-        async function pasteFromClipboard() {
-            try {
-                const text = await navigator.clipboard.readText();
-                document.getElementById('tiktok_url').value = text;
-            } catch (err) {
-                alert('Failed to read clipboard contents.');
-            }
-        }
 
-        function copyTranscription() {
-             const transcriptionText = document.getElementById('transcriptionText');
-             navigator.clipboard.writeText(transcriptionText.value).then(() => {
-                 const copyBtn = document.getElementById('copyTranscriptionBtn');
-                 const originalText = copyBtn.textContent;
-                 copyBtn.textContent = '✅ Copied!';
-                 setTimeout(() => { copyBtn.textContent = originalText; }, 2000);
-             }).catch(err => {
-                 alert('Failed to copy text.');
-             });
-         }
     </script>
 </body>
 </html>

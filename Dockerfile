@@ -10,15 +10,10 @@ WORKDIR /app
 # ==============================================================================
 ENV PYTHONPATH "${PYTHONPATH}:/app"
 
-# Instala dependências do sistema necessárias para yt-dlp
+# Instala dependências do sistema necessárias
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    curl \
     && rm -rf /var/lib/apt/lists/*
-
-# Instala yt-dlp como binário standalone para melhor compatibilidade no Cloud Run
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod a+rx /usr/local/bin/yt-dlp
 
 # Copia o arquivo de dependências primeiro
 COPY requirements.txt .

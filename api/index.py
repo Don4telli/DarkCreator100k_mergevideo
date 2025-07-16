@@ -11,7 +11,7 @@ import traceback
 
 # As importações agora funcionam diretamente graças ao PYTHONPATH no Dockerfile.
 from core.video_processor import VideoProcessor
-from core.tiktok_transcription import transcribe_tiktok_video
+
 # StorageManager removido - usando upload direto para GCS
 
 # Inicialização do Flask, apontando para a pasta de templates na raiz.
@@ -42,7 +42,6 @@ app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
 # Variáveis globais para rastrear o progresso
 progress_data = {}
-transcription_results = {}
 video_processor = VideoProcessor()
 
 # Inicializar processador de vídeo
@@ -163,96 +162,7 @@ def create_video():
         app.logger.error(f'[ERROR] Erro em /create_video: {traceback.format_exc()}')
         return jsonify({'error': str(e)}), 500
 
-def is_valid_tiktok_url(url):
-    """
-    Validate if the URL is a valid TikTok URL.
-    
-    Args:
-        url (str): URL to validate
-        
-    Returns:
-        bool: True if valid TikTok URL, False otherwise
-    """
-    import re
-    
-    if not url or not isinstance(url, str):
-        return False
-    
-    url = url.strip().lower()
-    
-    # TikTok URL patterns
-    tiktok_patterns = [
-        r'.*tiktok\.com.*',  # Any tiktok.com domain
-        r'.*vm\.tiktok\.com.*',  # Short URLs
-        r'.*m\.tiktok\.com.*',  # Mobile URLs
-        r'.*www\.tiktok\.com.*',  # WWW URLs
-    ]
-    
-    for pattern in tiktok_patterns:
-        if re.match(pattern, url):
-            return True
-    
-    return False
 
-@app.route('/transcribe_tiktok', methods=['POST'])
-def transcribe_tiktok():
-    app.logger.info('[INFO] POST /transcribe_tiktok iniciado')
-    try:
-        url = request.form.get('url')
-        if not url: return jsonify({'error': 'Nenhum link do TikTok fornecido.'}), 400
-        
-        # Validate TikTok URL
-        if not is_valid_tiktok_url(url):
-            return jsonify({'error': 'URL fornecida não é um link válido do TikTok. Verifique se o link contém "tiktok.com".'}), 400
-        
-        cookies_path = None
-        if os.path.exists('/app/cookies.txt'):
-            cookies_path = '/app/cookies.txt'
-            app.logger.info(f'[INFO] Usando cookies existentes em {cookies_path}')
-        
-        app.logger.info(f'[INFO] URL do TikTok recebida: {url}')
-        if cookies_path:
-            app.logger.info('[INFO] Usando arquivo de cookies do sistema')
-        else:
-            app.logger.info('[INFO] Nenhum arquivo de cookies disponível')
-        
-        session_id = os.path.basename(tempfile.mkdtemp())
-        key = f"{session_id}_transcribe"
-        progress_data[key] = {'progress': 0, 'message': 'Iniciando transcrição...'}
-        
-        def progress_callback(message, progress=None):
-            if progress is not None: progress_data[key]['progress'] = progress
-            progress_data[key]['message'] = message
-            app.logger.info(f'[INFO] Progresso: {message} ({progress}%)' if progress else f'[INFO] {message}')
-        
-        def transcribe_thread():
-            try:
-                app.logger.info('[INFO] Iniciando processamento de transcrição')
-                result = transcribe_tiktok_video(url, progress_callback, cookies_path)
-                transcription_results[session_id] = result
-                if result['success']:
-                    progress_data[key]['progress'] = 100
-                    progress_data[key]['message'] = 'Transcrição completa!'
-                    app.logger.info('[INFO] Transcrição completada com sucesso')
-                else:
-                    error_msg = f"[ERROR] Falha na transcrição: {result.get('error', 'Erro desconhecido')}"
-                    progress_data[key]['message'] = error_msg
-                    app.logger.error(error_msg)
-            except Exception as e:
-                error_message = f'[ERROR] Erro na thread: {traceback.format_exc()}'
-                progress_data[key]['message'] = error_message
-                app.logger.error(error_message)
-            finally:
-                app.logger.info('[INFO] Processo de transcrição finalizado')
-        
-        thread = threading.Thread(target=transcribe_thread)
-        thread.start()
-        
-        return jsonify({'success': True, 'session_id': session_id, 'message': 'Transcrição iniciada.'})
-        
-    except Exception as e:
-        app.logger.error(f'[ERROR] Erro em /transcribe_tiktok: {traceback.format_exc()}')
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/upload_video', methods=['POST'])
 def upload_video():
@@ -300,11 +210,6 @@ def download_video(session_id):
         app.logger.error(f"Erro no download: {e}")
         return str(e), 500
 
-@app.route('/get_transcription/<session_id>')
-def get_transcription(session_id):
-    result = transcription_results.get(session_id)
-    if not result:
-        return jsonify({'error': 'Transcrição não encontrada ou ainda em progresso'}), 404
-    return jsonify(result)
+
 
 # Endpoints de multi download removidos conforme solicitado
