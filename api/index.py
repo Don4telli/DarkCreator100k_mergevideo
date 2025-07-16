@@ -36,7 +36,6 @@ video_processor = VideoProcessor()
 def index():
     return render_template('index.html')
 
-# ... (todo o resto do seu código de rotas continua aqui, sem nenhuma alteração) ...
 @app.route('/upload', methods=['POST'])
 def upload_files():
     try:
@@ -47,26 +46,28 @@ def upload_files():
         
         image_paths = []
         for i, file in enumerate(image_files):
-            if file.filename == '':
-                continue
+            if file.filename == '': continue
             filename = secure_filename(f"image_{i:03d}_{file.filename}")
             filepath = os.path.join(temp_dir, filename)
             file.save(filepath)
             image_paths.append(filepath)
         
-        if len(image_paths) == 0:
-            return jsonify({'error': 'No valid image files uploaded'}), 400
+        if not image_paths: return jsonify({'error': 'No valid image files uploaded'}), 400
         
         audio_path = None
-        audio_file = request.files.get('audio')
-        if audio_file and audio_file.filename != '':
+        if 'audio' in request.files and request.files['audio'].filename != '':
+            audio_file = request.files['audio']
             audio_filename = secure_filename(f"audio_{audio_file.filename}")
             audio_path = os.path.join(temp_dir, audio_filename)
             audio_file.save(audio_path)
         
+        # Guardar no dicionário para a próxima etapa (simulando sessão)
+        session_id = os.path.basename(temp_dir)
+        progress_data[session_id] = {'image_paths': image_paths, 'audio_path': audio_path}
+        
         return jsonify({
             'success': True,
-            'session_id': os.path.basename(temp_dir)
+            'session_id': session_id,
         })
         
     except Exception as e:
@@ -79,18 +80,14 @@ def create_video():
         data = request.get_json()
         session_id = data.get('session_id')
         
-        if not session_id:
-            return jsonify({'error': 'No session ID provided'}), 400
-        
-        temp_dir = os.path.join(tempfile.gettempdir(), session_id)
-        if not os.path.exists(temp_dir):
+        if not session_id or session_id not in progress_data:
             return jsonify({'error': 'Session expired or invalid'}), 400
         
-        image_files = sorted([f for f in os.listdir(temp_dir) if f.startswith('image_')])
-        audio_files = [f for f in os.listdir(temp_dir) if f.startswith('audio_')]
+        session_info = progress_data[session_id]
+        image_paths = session_info['image_paths']
+        audio_path = session_info['audio_path']
         
-        image_paths = [os.path.join(temp_dir, f) for f in image_files]
-        audio_path = os.path.join(temp_dir, audio_files[0]) if audio_files else None
+        temp_dir = os.path.dirname(image_paths[0])
         output_path = os.path.join(temp_dir, 'output.mp4')
         
         aspect_ratio = data.get('aspect_ratio', '9:16')
@@ -102,8 +99,7 @@ def create_video():
         progress_data[key] = {'progress': 0, 'message': 'Starting video creation...'}
         
         def progress_callback(message, progress=None):
-            if progress is not None:
-                progress_data[key]['progress'] = progress
+            if progress is not None: progress_data[key]['progress'] = progress
             progress_data[key]['message'] = message
         
         def create_video_thread():
@@ -115,6 +111,7 @@ def create_video():
                         progress_callback=progress_callback
                     )
                 else:
+                    # Este bloco pode precisar de ajustes dependendo do que o cliente envia
                     width, height = video_processor.get_aspect_ratio_dimensions(aspect_ratio)
                     video_processor.create_video_from_images(
                         image_paths=image_paths, audio_path=audio_path, output_path=output_path,
@@ -124,8 +121,7 @@ def create_video():
                 progress_data[key]['message'] = 'Video creation completed!'
             except Exception as e:
                 import traceback
-                tb_str = traceback.format_exc()
-                error_message = f'Error: {str(e)}\nTraceback:\n{tb_str}'
+                error_message = f'Error: {e}\nTraceback:\n{traceback.format_exc()}'
                 progress_data[key]['message'] = error_message
                 app.logger.error(error_message)
         
@@ -137,13 +133,53 @@ def create_video():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/transcribe_tiktok', methods=['POST'])
+def transcribe_tiktok():
+    try:
+        data = request.get_json()
+        url = data.get('url')
+        if not url: return jsonify({'error': 'No TikTok URL provided'}), 400
+        
+        session_id = os.path.basename(tempfile.mkdtemp())
+        key = f"{session_id}_transcribe"
+        progress_data[key] = {'progress': 0, 'message': 'Starting TikTok transcription...'}
+        
+        def progress_callback(message, progress=None):
+            if progress is not None: progress_data[key]['progress'] = progress
+            progress_data[key]['message'] = message
+        
+        def transcribe_thread(): # Nome da função corrigido
+            try:
+                result = transcribe_tiktok_video(url, progress_callback)
+                transcription_results[session_id] = result
+                if result['success']:
+                    progress_data[key]['progress'] = 100
+                    progress_data[key]['message'] = 'Transcription completed successfully!'
+                else:
+                    progress_data[key]['message'] = f'Transcription failed: {result.get("error", "Unknown error")}'
+            except Exception as e:
+                import traceback
+                error_message = f'Error: {e}\nTraceback\n{traceback.format_exc()}'
+                progress_data[key]['message'] = error_message
+                transcription_results[session_id] = {'success': False, 'error': error_message}
+                app.logger.error(error_message)
+        
+        # **A CORREÇÃO ESTÁ AQUI**
+        thread = threading.Thread(target=transcribe_thread) # Alvo da thread corrigido
+        thread.start()
+        
+        return jsonify({'success': True, 'session_id': session_id, 'message': 'Transcription started'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Suas outras rotas (/progress, /download, etc.) continuam iguais
 @app.route('/progress')
 def get_progress():
     session_id = request.args.get('session_id')
     task_type = request.args.get('type', 'create')
     if not session_id:
         return jsonify({'error': 'Session ID required'}), 400
-
     key = f"{session_id}_{task_type}"
     return jsonify(progress_data.get(key, {'progress': 0, 'message': 'Waiting...'}))
 
@@ -152,80 +188,9 @@ def download_video(session_id):
     try:
         temp_dir = os.path.join(tempfile.gettempdir(), session_id)
         output_path = os.path.join(temp_dir, 'output.mp4')
-        
         if not os.path.exists(output_path):
             return jsonify({'error': 'Video file not found'}), 404
-        
         return send_file(output_path, as_attachment=True, download_name='video_output.mp4')
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/upload_video', methods=['POST'])
-def upload_video():
-    try:
-        temp_dir = tempfile.mkdtemp()
-        video_file = request.files.get('video')
-        if not video_file or video_file.filename == '':
-            return jsonify({'error': 'No video file provided'}), 400
-        
-        video_filename = secure_filename(f"input_{video_file.filename}")
-        video_path = os.path.join(temp_dir, video_filename)
-        video_file.save(video_path)
-        
-        green_threshold = float(request.form.get('green_threshold', 0.8))
-        
-        return jsonify({
-            'success': True,
-            'session_id': os.path.basename(temp_dir),
-            'video_name': video_file.filename,
-            'settings': {'green_threshold': green_threshold}
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/transcribe_tiktok', methods=['POST'])
-def transcribe_tiktok():
-    try:
-        data = request.get_json()
-        url = data.get('url')
-        if not url:
-            return jsonify({'error': 'No TikTok URL provided'}), 400
-        
-        temp_dir = tempfile.mkdtemp()
-        session_id = os.path.basename(temp_dir)
-        key = f"{session_id}_transcribe"
-        progress_data[key] = {'progress': 0, 'message': 'Starting TikTok transcription...'}
-        
-        def progress_callback(message, progress=None):
-            if progress is not None:
-                progress_data[key]['progress'] = progress
-            progress_data[key]['message'] = message
-        
-        def transcribe_thread():
-            try:
-                result = transcribe_tiktok_video(url, progress_callback)
-                transcription_results[session_id] = result
-                
-                if result['success']:
-                    progress_data[key]['progress'] = 100
-                    progress_data[key]['message'] = 'Transcription completed successfully!'
-                else:
-                    progress_data[key]['message'] = f'Transcription failed: {result.get("error", "Unknown error")}'
-            except Exception as e:
-                import traceback
-                tb_str = traceback.format_exc()
-                error_message = f'Error: {str(e)}\nTraceback\n{tb_str}'
-                progress_data[key]['message'] = error_message
-                transcription_results[session_id] = {'success': False, 'error': error_message}
-                app.logger.error(error_message)
-        
-        thread = threading.Thread(target=create_video_thread)
-        thread.start()
-        
-        return jsonify({'success': True, 'session_id': session_id, 'message': 'Transcription started'})
-        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -234,9 +199,7 @@ def get_transcription(session_id):
     try:
         if session_id not in transcription_results:
             return jsonify({'error': 'Transcription not found or still in progress'}), 404
-        
         result = transcription_results[session_id]
-        
         if result['success']:
             return jsonify({
                 'success': True, 'text': result['text'], 'session_id': session_id,
@@ -247,6 +210,5 @@ def get_transcription(session_id):
                 'success': False, 'error': result.get('error', 'Unknown error'),
                 'session_id': session_id
             })
-            
     except Exception as e:
         return jsonify({'error': str(e)}), 500
