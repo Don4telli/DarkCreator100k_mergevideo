@@ -22,10 +22,12 @@ from core.video_processor import VideoProcessor
 from core.tiktok_transcription import transcribe_tiktok_video
 
 app = Flask(__name__)
-# ==> ADICIONE ESTA FUNÇÃO EXATAMENTE AQUI <==
+
+# MANTENHA ESTA FUNÇÃO
 @app.route('/')
-def home():
+def index():  # Pode chamar de 'index' ou 'home', tanto faz
     return render_template('index.html')
+
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 
 # Global variables for progress tracking
