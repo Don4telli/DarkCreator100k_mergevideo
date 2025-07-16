@@ -4,6 +4,12 @@ FROM python:3.11-slim
 # Define o diretório de trabalho dentro do contêiner
 WORKDIR /app
 
+# ==============================================================================
+# A CORREÇÃO DEFINITIVA - Define a variável de ambiente PYTHONPATH
+# Isso diz ao Python para sempre procurar módulos na nossa pasta raiz /app.
+# ==============================================================================
+ENV PYTHONPATH "${PYTHONPATH}:/app"
+
 # Instala o FFmpeg
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
@@ -16,12 +22,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia todo o resto do seu projeto para o contêiner
 COPY . .
 
-# ==============================================================================
-# COMANDO FINAL E CORRETO
-# --worker-class gthread: Usa o trabalhador que entende threads.
-# --threads 4: Permite que o único trabalhador lide com 4 tarefas ao mesmo tempo.
-# --workers 1: Força o uso de APENAS UM trabalhador, garantindo que a memória
-#              (como a variável 'progress_data') seja compartilhada.
-# --timeout 600: Aumenta o tempo limite para 10 minutos para tarefas longas.
-# ==============================================================================
-CMD ["gunicorn", "--worker-class", "gthread", "--threads", "4", "--workers", "1", "--timeout", "600", "--bind", "0.0.0.0:${PORT}", "api.index:app"]
+# Comando final para iniciar o servidor, usando a forma "shell" para que ${PORT} funcione
+CMD gunicorn --worker-class gthread --threads 4 --workers 1 --timeout 600 --bind 0.0.0.0:${PORT} api.index:app

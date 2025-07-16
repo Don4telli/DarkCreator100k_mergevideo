@@ -1,31 +1,23 @@
-# ==============================================================================
-# api/index.py - VERSÃO FINALÍSSIMA CORRIGIDA
-# ==============================================================================
-# PRIMEIRO, configuramos o caminho do projeto. NADA vem antes disso.
-import sys
-from pathlib import Path
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
-# AGORA, com o caminho corrigido, podemos importar todo o resto.
 import os
 import threading
 import tempfile
 import shutil
+from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
+
+# As importações agora funcionam diretamente graças ao PYTHONPATH no Dockerfile.
 from core.video_processor import VideoProcessor
 from core.tiktok_transcription import transcribe_tiktok_video
 
-# ==============================================================================
-# INICIALIZAÇÃO CORRETA DO FLASK
-# ==============================================================================
+# Inicialização do Flask, apontando para a pasta de templates na raiz.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
-# ==============================================================================
 
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
+# Variáveis globais para rastrear o progresso
 progress_data = {}
 transcription_results = {}
 video_processor = VideoProcessor()
@@ -37,7 +29,6 @@ def index():
 @app.route('/create_video', methods=['POST'])
 def create_video():
     try:
-        # Etapa 1: Receber arquivos e dados, tudo de uma vez
         temp_dir = tempfile.mkdtemp()
         session_id = os.path.basename(temp_dir)
         
@@ -66,7 +57,6 @@ def create_video():
         output_filename = request.form.get('output_name', 'output.mp4')
         output_path = os.path.join(temp_dir, secure_filename(output_filename))
         
-        # Etapa 2: Iniciar o processo em uma thread
         key = f"{session_id}_create"
         progress_data[key] = {'progress': 0, 'message': 'Iniciando criação do vídeo...'}
 
@@ -114,7 +104,7 @@ def transcribe_tiktok():
         def transcribe_thread():
             try:
                 result = transcribe_tiktok_video(url, progress_callback)
-                transcription_results[session_id] = result # Salva o resultado completo
+                transcription_results[session_id] = result
                 if result['success']:
                     progress_data[key]['progress'] = 100
                     progress_data[key]['message'] = 'Transcrição completa!'
@@ -134,6 +124,25 @@ def transcribe_tiktok():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/upload_video', methods=['POST'])
+def upload_video():
+    try:
+        temp_dir = tempfile.mkdtemp()
+        video_file = request.files.get('video')
+        if not video_file or video_file.filename == '':
+            return jsonify({'error': 'Nenhum arquivo de vídeo enviado'}), 400
+        
+        video_filename = secure_filename(f"input_{video_file.filename}")
+        video_path = os.path.join(temp_dir, video_filename)
+        video_file.save(video_path)
+        
+        return jsonify({
+            'success': True,
+            'session_id': os.path.basename(temp_dir),
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/progress')
 def get_progress():
     session_id = request.args.get('session_id')
@@ -147,17 +156,15 @@ def get_progress():
 def download_video(session_id):
     try:
         temp_dir = os.path.join(tempfile.gettempdir(), session_id)
-        # Tenta encontrar o nome do arquivo de output que foi usado
-        output_filename = 'output.mp4' # Default
-        if f"{session_id}_create" in progress_data:
-            # Esta parte é um pouco frágil, idealmente o nome do arquivo seria salvo
-            pass
-        
-        output_path = os.path.join(temp_dir, output_filename)
-        if not os.path.exists(output_path):
+        # Tenta encontrar um arquivo .mp4 no diretório
+        output_files = [f for f in os.listdir(temp_dir) if f.endswith('.mp4')]
+        if not output_files:
             return "Arquivo de vídeo não encontrado.", 404
+        
+        output_path = os.path.join(temp_dir, output_files[0])
         return send_file(output_path, as_attachment=True)
     except Exception as e:
+        app.logger.error(f"Erro no download: {e}")
         return str(e), 500
 
 @app.route('/get_transcription/<session_id>')
