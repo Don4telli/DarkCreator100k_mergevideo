@@ -39,7 +39,7 @@ bucket_name = os.environ.get('GCS_BUCKET', 'dark_storage')  # Defina GCS_BUCKET 
 
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
-# Variáveis globais para rastrear o progresso
+# Variáveis globais para rastrear o progresso#S
 progress_data = {}
 transcription_results = {}
 video_processor = VideoProcessor()
