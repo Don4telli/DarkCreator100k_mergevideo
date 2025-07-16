@@ -1,5 +1,5 @@
 # ==============================================================================
-# BLOCO DE CORREÇÃO PARA AMBIENTES DE SERVIDOR (RENDER/VERCEL)
+# BLOCO DE CORREÇÃO PARA AMBIENTES DE SERVIDOR
 # ==============================================================================
 from pathlib import Path
 import sys
@@ -19,7 +19,7 @@ from core.video_processor import VideoProcessor
 from core.tiktok_transcription import transcribe_tiktok_video
 
 # ==============================================================================
-# CORREÇÃO FINAL - DIZENDO AO FLASK ONDE FICA A PASTA 'templates'
+# INICIALIZAÇÃO CORRETA DO FLASK
 # ==============================================================================
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
@@ -40,39 +40,32 @@ def index():
 def upload_files():
     try:
         temp_dir = tempfile.mkdtemp()
+        session_id = os.path.basename(temp_dir)
+
         image_files = request.files.getlist('images')
-        if not image_files or len(image_files) == 0:
-            return jsonify({'error': 'No image files provided'}), 400
-        
         image_paths = []
-        for i, file in enumerate(image_files):
-            if file.filename == '': continue
-            filename = secure_filename(f"image_{i:03d}_{file.filename}")
-            filepath = os.path.join(temp_dir, filename)
-            file.save(filepath)
-            image_paths.append(filepath)
-        
-        if not image_paths: return jsonify({'error': 'No valid image files uploaded'}), 400
-        
+        if image_files:
+            for i, file in enumerate(image_files):
+                if file and file.filename:
+                    filename = secure_filename(f"image_{i:03d}_{file.filename}")
+                    filepath = os.path.join(temp_dir, filename)
+                    file.save(filepath)
+                    image_paths.append(filepath)
+
         audio_path = None
-        if 'audio' in request.files and request.files['audio'].filename != '':
+        if 'audio' in request.files and request.files['audio'].filename:
             audio_file = request.files['audio']
             audio_filename = secure_filename(f"audio_{audio_file.filename}")
             audio_path = os.path.join(temp_dir, audio_filename)
             audio_file.save(audio_path)
-        
-        # Guardar no dicionário para a próxima etapa (simulando sessão)
-        session_id = os.path.basename(temp_dir)
+
         progress_data[session_id] = {'image_paths': image_paths, 'audio_path': audio_path}
-        
-        return jsonify({
-            'success': True,
-            'session_id': session_id,
-        })
-        
+
+        return jsonify({'success': True, 'session_id': session_id})
     except Exception as e:
         app.logger.error(f"Upload error: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/create_video', methods=['POST'])
 def create_video():
@@ -84,9 +77,12 @@ def create_video():
             return jsonify({'error': 'Session expired or invalid'}), 400
         
         session_info = progress_data[session_id]
-        image_paths = session_info['image_paths']
-        audio_path = session_info['audio_path']
-        
+        image_paths = session_info.get('image_paths', [])
+        audio_path = session_info.get('audio_path')
+
+        if not image_paths:
+             return jsonify({'error': 'No images found in this session'}), 400
+
         temp_dir = os.path.dirname(image_paths[0])
         output_path = os.path.join(temp_dir, 'output.mp4')
         
@@ -111,7 +107,6 @@ def create_video():
                         progress_callback=progress_callback
                     )
                 else:
-                    # Este bloco pode precisar de ajustes dependendo do que o cliente envia
                     width, height = video_processor.get_aspect_ratio_dimensions(aspect_ratio)
                     video_processor.create_video_from_images(
                         image_paths=image_paths, audio_path=audio_path, output_path=output_path,
@@ -148,13 +143,13 @@ def transcribe_tiktok():
             if progress is not None: progress_data[key]['progress'] = progress
             progress_data[key]['message'] = message
         
-        def transcribe_thread(): # Nome da função corrigido
+        def transcribe_thread():
             try:
                 result = transcribe_tiktok_video(url, progress_callback)
                 transcription_results[session_id] = result
                 if result['success']:
                     progress_data[key]['progress'] = 100
-                    progress_data[key]['message'] = 'Transcription completed successfully!'
+                    progress_data[key]['message'] = 'Transcription completed!'
                 else:
                     progress_data[key]['message'] = f'Transcription failed: {result.get("error", "Unknown error")}'
             except Exception as e:
@@ -164,8 +159,7 @@ def transcribe_tiktok():
                 transcription_results[session_id] = {'success': False, 'error': error_message}
                 app.logger.error(error_message)
         
-        # **A CORREÇÃO ESTÁ AQUI**
-        thread = threading.Thread(target=transcribe_thread) # Alvo da thread corrigido
+        thread = threading.Thread(target=transcribe_thread)
         thread.start()
         
         return jsonify({'success': True, 'session_id': session_id, 'message': 'Transcription started'})
@@ -173,7 +167,28 @@ def transcribe_tiktok():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Suas outras rotas (/progress, /download, etc.) continuam iguais
+# ==============================================================================
+# FUNÇÃO QUE FALTAVA - REINCLUÍDA
+# ==============================================================================
+@app.route('/upload_video', methods=['POST'])
+def upload_video():
+    try:
+        temp_dir = tempfile.mkdtemp()
+        video_file = request.files.get('video')
+        if not video_file or video_file.filename == '':
+            return jsonify({'error': 'No video file provided'}), 400
+        
+        video_filename = secure_filename(f"input_{video_file.filename}")
+        video_path = os.path.join(temp_dir, video_filename)
+        video_file.save(video_path)
+        
+        return jsonify({
+            'success': True,
+            'session_id': os.path.basename(temp_dir),
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/progress')
 def get_progress():
     session_id = request.args.get('session_id')

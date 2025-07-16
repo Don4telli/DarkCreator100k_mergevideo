@@ -4,11 +4,10 @@ FROM python:3.11-slim
 # Define o diretório de trabalho dentro do contêiner
 WORKDIR /app
 
-# Instala o FFmpeg (a causa de todos os nossos problemas) e outras ferramentas
-# O '&' no final é para rodar em segundo plano e não interagir
+# Instala o FFmpeg
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
-# Copia o arquivo de dependências primeiro, para aproveitar o cache em builds futuros
+# Copia o arquivo de dependências primeiro
 COPY requirements.txt .
 
 # Instala as dependências do Python
@@ -17,8 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia todo o resto do seu projeto para o contêiner
 COPY . .
 
-# Comando para iniciar seu servidor web quando o contêiner rodar
-# Ele diz ao Gunicorn para rodar o objeto 'app' que está no arquivo 'api/index.py'
-# Linha Nova e Correta:
-# Linha Nova e Correta:
-CMD gunicorn --bind 0.0.0.0:${PORT} api.index:app
+# ==============================================================================
+# CORREÇÃO FINAL - Força 1 worker e usa threads para compartilhar memória
+# ==============================================================================
+CMD gunicorn --workers 1 --threads 4 --bind 0.0.0.0:${PORT} api.index:app
