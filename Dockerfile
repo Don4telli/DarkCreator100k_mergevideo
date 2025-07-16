@@ -17,6 +17,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # ==============================================================================
-# CORREÇÃO FINAL - Força 1 worker e usa threads para compartilhar memória
+# COMANDO FINAL E CORRETO
+# --worker-class gthread: Usa o trabalhador que entende threads.
+# --threads 4: Permite que o único trabalhador lide com 4 tarefas ao mesmo tempo.
+# --workers 1: Força o uso de APENAS UM trabalhador, garantindo que a memória
+#              (como a variável 'progress_data') seja compartilhada.
 # ==============================================================================
-CMD gunicorn --workers 1 --threads 4 --bind 0.0.0.0:${PORT} api.index:app
+CMD ["gunicorn", "--worker-class", "gthread", "--threads", "4", "--workers", "1", "--bind", "0.0.0.0:${PORT}", "api.index:app"]
