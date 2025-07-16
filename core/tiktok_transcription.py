@@ -45,6 +45,9 @@ class TikTokTranscriber:
                 "--output", output_template,
                 url
             ]
+            if hasattr(self, 'cookies_path') and self.cookies_path and os.path.exists(self.cookies_path):
+                cmd.insert(-1, "--cookies")
+                cmd.insert(-1, self.cookies_path)
             
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             
@@ -127,17 +130,20 @@ class TikTokTranscriber:
         except Exception as e:
             return f"Error extracting text: {str(e)}"
     
-    def transcribe_tiktok_url(self, url, progress_callback=None):
+    def transcribe_tiktok_url(self, url, progress_callback=None, cookies_path=None):
         """
         Complete workflow: download TikTok video and transcribe it.
         
         Args:
             url (str): TikTok video URL
             progress_callback (callable): Optional callback for progress updates
+            cookies_path (str): Optional path to cookies file for authenticated download
             
         Returns:
             dict: Result containing transcription text and metadata
         """
+        if cookies_path:
+            self.cookies_path = cookies_path
         temp_dir = None
         try:
             # Create temporary directory
@@ -191,16 +197,17 @@ class TikTokTranscriber:
                 except:
                     pass  # Ignore cleanup errors
 
-def transcribe_tiktok_video(url, progress_callback=None):
+def transcribe_tiktok_video(url, progress_callback=None, cookies_path=None):
     """
     Convenience function to transcribe a TikTok video.
     
     Args:
         url (str): TikTok video URL
         progress_callback (callable): Optional callback for progress updates
+        cookies_path (str): Optional path to cookies file for authenticated download
         
     Returns:
         dict: Transcription result
     """
     transcriber = TikTokTranscriber()
-    return transcriber.transcribe_tiktok_url(url, progress_callback)
+    return transcriber.transcribe_tiktok_url(url, progress_callback, cookies_path)

@@ -11,3 +11,4 @@ yt-dlp>=2023.1.6
 deepgram-sdk>=3.0.0
 gunicorn==23.0.0
 Werkzeug<3.0.0
+google-cloud-logging>=3.0.0

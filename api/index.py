@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
+import google.cloud.logging as cloud_logging
 
 # As importações agora funcionam diretamente graças ao PYTHONPATH no Dockerfile.
 from core.video_processor import VideoProcessor
@@ -14,6 +15,10 @@ from core.tiktok_transcription import transcribe_tiktok_video
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
+
+# Configuração do Cloud Logging
+logging_client = cloud_logging.Client()
+logging_client.setup_logging()
 
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
@@ -103,7 +108,8 @@ def transcribe_tiktok():
         
         def transcribe_thread():
             try:
-                result = transcribe_tiktok_video(url, progress_callback)
+                cookies_path = '/app/cookies.txt' if os.path.exists('/app/cookies.txt') else None
+                result = transcribe_tiktok_video(url, progress_callback, cookies_path)
                 transcription_results[session_id] = result
                 if result['success']:
                     progress_data[key]['progress'] = 100
