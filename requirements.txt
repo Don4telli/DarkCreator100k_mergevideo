@@ -1,5 +1,6 @@
 serverless-wsgi==3.0.1
-moviepy>=1.0.3
+moviepy==1.0.3
+decorator==4.4.2
 numpy>=1.21.0
 Pillow==9.5.0
 imageio>=2.9.0
@@ -8,5 +9,5 @@ flask>=2.0.0
 opencv-python-headless>=4.5.0
 yt-dlp>=2023.1.6
 deepgram-sdk>=3.0.0
-gunicorn>=23.0.0
+gunicorn==23.0.0
 Werkzeug<3.0.0
