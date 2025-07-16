@@ -13,7 +13,8 @@ from werkzeug.utils import secure_filename
 import tempfile
 import shutil
 from pathlib import Path
-
+# Altere esta linha
+from flask import Flask, render_template, request, jsonify # Adicione o que mais você usar
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -21,6 +22,10 @@ from core.video_processor import VideoProcessor
 from core.tiktok_transcription import transcribe_tiktok_video
 
 app = Flask(__name__)
+# ==> ADICIONE ESTA FUNÇÃO EXATAMENTE AQUI <==
+@app.route('/')
+def home():
+    return render_template('index.html')
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 
 # Global variables for progress tracking
