@@ -6,6 +6,8 @@ from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
 import google.cloud.logging as cloud_logging
+from google.cloud import storage
+import traceback
 
 # As importações agora funcionam diretamente graças ao PYTHONPATH no Dockerfile.
 from core.video_processor import VideoProcessor
@@ -31,6 +33,10 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR)
 logging_client = cloud_logging.Client()
 logging_client.setup_logging()
 
+# Inicializa o cliente do GCS
+storage_client = storage.Client()
+bucket_name = os.environ.get('GCS_BUCKET', 'dark_storage')  # Defina GCS_BUCKET no ambiente
+
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
 # Variáveis globais para rastrear o progresso
@@ -46,8 +52,9 @@ def index():
 
 @app.route('/create_video', methods=['POST'])
 def create_video():
+    app.logger.info('[INFO] POST /create_video iniciado')
     try:
-        temp_dir = tempfile.mkdtemp()
+        temp_dir = tempfile.mkdtemp(dir='/tmp')
         session_id = os.path.basename(temp_dir)
         
         image_files = request.files.getlist('images')
@@ -57,6 +64,7 @@ def create_video():
                 filename = secure_filename(f"image_{i:03d}_{file.filename}")
                 filepath = os.path.join(temp_dir, filename)
                 file.save(filepath)
+                app.logger.info(f'[INFO] Arquivo de imagem salvo temporariamente em {filepath}')
                 image_paths.append(filepath)
 
         if not image_paths:
@@ -68,6 +76,11 @@ def create_video():
             audio_filename = secure_filename(f"audio_{audio_file.filename}")
             audio_path = os.path.join(temp_dir, audio_filename)
             audio_file.save(audio_path)
+            app.logger.info(f'[INFO] Arquivo de áudio salvo temporariamente em {audio_path}')
+
+        num_images = len(image_paths)
+        num_audio = 1 if audio_path else 0
+        app.logger.info(f'[INFO] {num_images} imagens e {num_audio} áudio recebidos')
 
         aspect_ratio = request.form.get('aspect_ratio', '9:16')
         fps = int(request.form.get('fps', 30))
@@ -84,16 +97,35 @@ def create_video():
         
         def create_video_thread():
             try:
+                app.logger.info('[INFO] Processando vídeo com moviepy...')
                 video_processor.create_multi_video_with_separators(
                     image_paths=image_paths, audio_path=audio_path, output_path=output_path,
                     aspect_ratio=aspect_ratio, fps=fps, green_screen_duration=green_screen_duration,
                     progress_callback=progress_callback
                 )
+                app.logger.info(f'[INFO] Vídeo criado em {output_path}')
+
+                # Upload do vídeo final para GCS
+                bucket = storage_client.bucket(bucket_name)
+                blob_name = f'videos/{session_id}/{output_filename}'
+                blob = bucket.blob(blob_name)
+                blob.upload_from_filename(output_path)
+                app.logger.info(f'[INFO] Upload para gs://{bucket_name}/{blob_name} concluído')
+
+                # Gerar signed URL válida por 1 hora
+                signed_url = blob.generate_signed_url(expiration=3600, method='GET')
+                progress_data[key]['signed_url'] = signed_url
+
+                app.logger.info('[INFO] Processo finalizado com sucesso')
             except Exception as e:
-                import traceback
-                error_message = f'Erro na thread: {e}\n{traceback.format_exc()}'
-                progress_data[key]['message'] = error_message
-                app.logger.error(error_message)
+                error_msg = f'[ERROR] Falha na montagem do vídeo: {traceback.format_exc()}'
+                progress_data[key]['message'] = error_msg
+                app.logger.error(error_msg)
+            finally:
+                # Limpeza de arquivos temporários
+                if os.path.exists(temp_dir):
+                    shutil.rmtree(temp_dir)
+                app.logger.info(f'[INFO] Arquivos temporários em {temp_dir} removidos')
         
         thread = threading.Thread(target=create_video_thread)
         thread.start()
@@ -101,13 +133,12 @@ def create_video():
         return jsonify({'success': True, 'session_id': session_id, 'message': 'Criação do vídeo iniciada.'})
         
     except Exception as e:
-        app.logger.error(f"Erro em /create_video: {e}")
+        app.logger.error(f'[ERROR] Erro em /create_video: {traceback.format_exc()}')
         return jsonify({'error': str(e)}), 500
 
 @app.route('/transcribe_tiktok', methods=['POST'])
 def transcribe_tiktok():
-    print("Passei aqui na /transcribe_tiktok")
-    logging.info("Passei aqui também na /transcribe_tiktok")
+    app.logger.info('[INFO] POST /transcribe_tiktok iniciado')
     try:
         url = request.form.get('url')
         if not url: return jsonify({'error': 'Nenhum link do TikTok fornecido.'}), 400
@@ -116,11 +147,19 @@ def transcribe_tiktok():
         cookies_path = None
         
         if cookies_file and cookies_file.filename:
-            temp_dir = tempfile.mkdtemp()
+            temp_dir = tempfile.mkdtemp(dir='/tmp')
             cookies_path = os.path.join(temp_dir, 'cookies.txt')
             cookies_file.save(cookies_path)
+            app.logger.info(f'[INFO] Arquivo de cookies salvo temporariamente em {cookies_path}')
         elif os.path.exists('/app/cookies.txt'):
             cookies_path = '/app/cookies.txt'
+            app.logger.info(f'[INFO] Usando cookies existentes em {cookies_path}')
+        
+        app.logger.info(f'[INFO] URL do TikTok recebida: {url}')
+        if cookies_path:
+            app.logger.info(f'[INFO] 1 arquivo de cookies recebido')
+        else:
+            app.logger.info('[INFO] Nenhum arquivo de cookies recebido')
         
         session_id = os.path.basename(tempfile.mkdtemp())
         key = f"{session_id}_transcribe"
@@ -129,29 +168,30 @@ def transcribe_tiktok():
         def progress_callback(message, progress=None):
             if progress is not None: progress_data[key]['progress'] = progress
             progress_data[key]['message'] = message
+            app.logger.info(f'[INFO] Progresso: {message} ({progress}%)' if progress else f'[INFO] {message}')
         
         def transcribe_thread():
             try:
-                app.logger.info(f'Iniciando transcrição para URL: {url}')
-                app.logger.info(f'Caminho de cookies: {cookies_path}')
+                app.logger.info('[INFO] Iniciando processamento de transcrição')
                 result = transcribe_tiktok_video(url, progress_callback, cookies_path)
                 transcription_results[session_id] = result
                 if result['success']:
                     progress_data[key]['progress'] = 100
                     progress_data[key]['message'] = 'Transcrição completa!'
-                    app.logger.info('Transcrição completada com sucesso')
+                    app.logger.info('[INFO] Transcrição completada com sucesso')
                 else:
-                    error_msg = f"Falha na transcrição: {result.get('error', 'Erro desconhecido')}"
+                    error_msg = f"[ERROR] Falha na transcrição: {result.get('error', 'Erro desconhecido')}"
                     progress_data[key]['message'] = error_msg
                     app.logger.error(error_msg)
             except Exception as e:
-                import traceback
-                error_message = f'Erro na thread: {e}\n{traceback.format_exc()}'
+                error_message = f'[ERROR] Erro na thread: {traceback.format_exc()}'
                 progress_data[key]['message'] = error_message
                 app.logger.error(error_message)
             finally:
                 if cookies_path and cookies_path != '/app/cookies.txt' and os.path.exists(cookies_path):
                     os.remove(cookies_path)
+                    app.logger.info(f'[INFO] Arquivo de cookies temporário removido: {cookies_path}')
+                app.logger.info('[INFO] Processo de transcrição finalizado')
         
         thread = threading.Thread(target=transcribe_thread)
         thread.start()
@@ -159,6 +199,7 @@ def transcribe_tiktok():
         return jsonify({'success': True, 'session_id': session_id, 'message': 'Transcrição iniciada.'})
         
     except Exception as e:
+        app.logger.error(f'[ERROR] Erro em /transcribe_tiktok: {traceback.format_exc()}')
         return jsonify({'error': str(e)}), 500
 
 @app.route('/upload_video', methods=['POST'])
@@ -187,7 +228,10 @@ def get_progress():
     if not session_id or not task_type:
         return jsonify({'error': 'session_id e type são necessários'}), 400
     key = f"{session_id}_{task_type}"
-    return jsonify(progress_data.get(key, {'progress': 0, 'message': 'Aguardando...'}))
+    progress = progress_data.get(key, {'progress': 0, 'message': 'Aguardando...'})
+    if 'signed_url' in progress_data.get(key, {}):
+        progress['signed_url'] = progress_data[key]['signed_url']
+    return jsonify(progress)
 
 @app.route('/download/<session_id>')
 def download_video(session_id):
