@@ -33,6 +33,7 @@
         <h1>🎬 DarkNews Creator</h1>
         <div class="tool-buttons">
             <a href="https://chat.openai.com" target="_blank" class="tool-btn">ChatGPT</a>
+            <a href="https://www.tiktok.com" target="_blank" class="tool-btn">TikTok</a>
             <a href="https://fish.audio/pt/" target="_blank" class="tool-btn">Fish Audio</a>
         </div>
 
@@ -116,56 +117,79 @@
             const downloadSection = document.getElementById('createDownloadSection');
 
             btn.disabled = true;
-            btn.textContent = 'Processando...';
+            btn.textContent = 'Preparando upload...';
             messageArea.innerHTML = '';
             progressContainer.style.display = 'block';
             downloadSection.style.display = 'none';
 
-            const formData = new FormData(createForm);
             const imageFiles = document.getElementById('images').files;
             const audioFile = document.getElementById('audio').files[0];
 
             try {
-                const uploadFile = async (file) => {
-                    const res = await fetch('/generate_upload_url', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ filename: file.name })
-                    });
-                    const { upload_url, gcs_path } = await res.json();
-                    if (!upload_url) throw new Error('Failed to get upload URL.');
-
-                    await fetch(upload_url, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-                        body: file
-                    });
-                    return gcs_path;
-                };
-
-                const imagePaths = [];
+                // 1. Coleta os nomes de todos os arquivos para pedir URLs assinadas
+                const allFilenames = [];
                 for (const file of imageFiles) {
-                    imagePaths.push(await uploadFile(file));
+                    allFilenames.push(file.name);
                 }
-
-                let audioPath = null;
                 if (audioFile) {
-                    audioPath = await uploadFile(audioFile);
+                    allFilenames.push(audioFile.name);
                 }
 
-                const payload = {
-                    image_paths: imagePaths,
-                    audio_path: audioPath,
-                    aspect_ratio: formData.get('aspect_ratio'),
-                    fps: formData.get('fps'),
-                    green_screen_duration: formData.get('green_screen_duration'),
-                    output_name: formData.get('output_name'),
-                };
+                // 2. Chama o backend para obter URLs de upload assinadas para TODOS os arquivos
+                const urlsResponse = await fetch('/generate_upload_urls', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filenames: allFilenames }) // <-- ENVIA A LISTA AQUI
+                });
+                const urlsData = await urlsResponse.json();
+                if (!urlsResponse.ok || !urlsData) {
+                    throw new Error(urlsData.error || `Falha ao obter URLs de upload (${urlsResponse.status})`);
+                }
 
+                // 3. Faz o upload de cada arquivo diretamente para o Google Cloud Storage
+                btn.textContent = 'Enviando arquivos...';
+                const uploadedGcsPaths = [];
+                
+                const uploadPromises = [];
+                for (let i = 0; i < imageFiles.length; i++) {
+                    const file = imageFiles[i];
+                    const uploadInfo = urlsData[file.name];
+                    uploadedGcsPaths.push({ gcsPath: uploadInfo.gcsPath, type: 'image' });
+
+                    uploadPromises.push(
+                        fetch(uploadInfo.signedUrl, {
+                            method: 'PUT',
+                            body: file,
+                            headers: { 'Content-Type': file.type || 'application/octet-stream' }
+                        })
+                    );
+                }
+
+                if (audioFile) {
+                    const uploadInfo = urlsData[audioFile.name];
+                    uploadedGcsPaths.push({ gcsPath: uploadInfo.gcsPath, type: 'audio' });
+                    uploadPromises.push(
+                        fetch(uploadInfo.signedUrl, {
+                            method: 'PUT',
+                            body: audioFile,
+                            headers: { 'Content-Type': audioFile.type || 'application/octet-stream' }
+                        })
+                    );
+                }
+                await Promise.all(uploadPromises);
+
+                // 4. Chama o backend para criar o vídeo, passando os caminhos GCS
+                btn.textContent = 'Iniciando processamento...';
                 const response = await fetch('/create_video', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify({
+                        files: uploadedGcsPaths, // Lista de objetos com gcsPath e type
+                        aspect_ratio: formData.get('aspect_ratio'),
+                        fps: formData.get('fps'),
+                        green_screen_duration: formData.get('green_screen_duration'),
+                        output_name: formData.get('output_name'),
+                    }),
                 });
 
                 const result = await response.json();
@@ -181,6 +205,44 @@
         });
 
 
+        // --- LÓGICA DE TRANSCRIÇÃO DE TIKTOK ---
+        const transcribeForm = document.getElementById('transcribeForm');
+        transcribeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('transcribeBtn');
+            const messageArea = document.getElementById('transcribeMessage');
+            const progressContainer = document.getElementById('transcribeProgressContainer');
+            
+            btn.disabled = true;
+            btn.textContent = 'Transcrevendo...';
+            messageArea.innerHTML = '';
+            progressContainer.style.display = 'block';
+            document.getElementById('transcriptionResult').style.display = 'none';
+
+            const tiktokUrl = document.getElementById('tiktok_url').value.trim();
+            if (!tiktokUrl) {
+                handleTaskEnd(null, 'transcribe', false, 'Por favor, insira um link do TikTok.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/transcribe_tiktok', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: tiktokUrl })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || `O servidor respondeu com status ${response.status}`);
+                }
+                
+                startProgressCheck(result.session_id, 'transcribe');
+
+            } catch (err) {
+                handleTaskEnd(null, 'transcribe', false, err.message);
+            }
+        });
 
         // --- FUNÇÕES COMUNS DE UI ---
         function startProgressCheck(sessionId, type) {
@@ -223,19 +285,56 @@
                 const createBtn = document.getElementById('createBtn');
                 createBtn.disabled = false;
                 createBtn.textContent = 'Create Video';
-                if (success && data.signed_url) {
+                if (success && sessionId) { // Precisa do session_id para o download local
                     const downloadSection = document.getElementById('createDownloadSection');
-                    downloadSection.innerHTML = `<a href="${data.signed_url}" class="tool-btn" download="${data.output_name || 'video.mp4'}" style="background-color: #34C759; color: white;">Download Video</a>`;
+                    downloadSection.innerHTML = `<button onclick="window.location.href='/download/${sessionId}'">Download Video</button>`;
                     downloadSection.style.display = 'block';
-                } else if (success && data.local_file) {
-                     const downloadSection = document.getElementById('createDownloadSection');
-                    downloadSection.innerHTML = `<button onclick="window.location.href='/download/${sessionId}'">Download Local Copy</button>`;
-                    downloadSection.style.display = 'block';
+                }
+            } else if (type === 'transcribe') {
+                const transcribeBtn = document.getElementById('transcribeBtn');
+                transcribeBtn.disabled = false;
+                transcribeBtn.textContent = 'Transcribe Video';
+                if (success && sessionId) {
+                    fetchAndDisplayTranscription(sessionId);
                 }
             }
         }
 
+        async function fetchAndDisplayTranscription(sessionId) {
+            try {
+                const response = await fetch(`/get_transcription/${sessionId}`);
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('transcriptionText').value = data.text;
+                    document.getElementById('transcriptionResult').style.display = 'block';
+                } else {
+                    handleTaskEnd(sessionId, 'transcribe', false, data.error);
+                }
+            } catch (err) {
+                 handleTaskEnd(sessionId, 'transcribe', false, 'Falha ao buscar o resultado da transcrição.');
+            }
+        }
+        
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('tiktok_url').value = text;
+            } catch (err) {
+                alert('Failed to read clipboard contents.');
+            }
+        }
 
+        function copyTranscription() {
+             const transcriptionText = document.getElementById('transcriptionText');
+             navigator.clipboard.writeText(transcriptionText.value).then(() => {
+                 const copyBtn = document.getElementById('copyTranscriptionBtn');
+                 const originalText = copyBtn.textContent;
+                 copyBtn.textContent = '✅ Copied!';
+                 setTimeout(() => { copyBtn.textContent = originalText; }, 2000);
+             }).catch(err => {
+                 alert('Failed to copy text.');
+             });
+         }
     </script>
 </body>
 </html>
