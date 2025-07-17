@@ -388,13 +388,17 @@ class VideoProcessor:
             progress_logger = VideoWriteProgressLogger(progress_callback)
 
             print(f"DEBUG: About to write final video to: {output_path}")
+
+            # *** CORREÇÃO APLICADA ***
+            # verbose=False para não poluir os logs
+            # logger=progress_logger para ativar o callback de progresso
             final_video.write_videofile(
                 output_path,
                 fps=fps,
                 codec='libx264',
                 audio_codec='aac',
-                verbose=True,
-                logger=None,
+                verbose=False, 
+                logger=progress_logger, 
                 temp_audiofile='temp-audio.m4a',
                 remove_temp=True
             )
