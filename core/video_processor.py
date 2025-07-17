@@ -241,7 +241,7 @@ class VideoProcessor:
             num_groups = len(image_groups)
             sorted_groups = sorted(image_groups.items())
 
-            # Phase 2: Creating segments (10-50%)
+            # Phase 2: Creating segments in memory (10-50%)
             segment_progress_start = 10
             segment_progress_total = 40
             progress_per_group = segment_progress_total / num_groups if num_groups > 0 else 0
@@ -252,16 +252,21 @@ class VideoProcessor:
                     self.logger.warning(f"Skipping empty image group: {prefix}")
                     continue
 
-                def group_progress_callback(message, progress):
-                    if progress_callback:
-                        scaled_progress = segment_progress_start + (i * progress_per_group) + (progress / 100 * progress_per_group)
-                        progress_callback(f"{message} for group {prefix} ({i+1}/{num_groups})", scaled_progress)
+                if progress_callback:
+                    progress = segment_progress_start + ((i + 1) / num_groups) * segment_progress_total
+                    progress_callback(f"Creating segment for '{prefix}' ({i+1}/{num_groups})", progress)
 
                 print(f"DEBUG: About to call create_video_from_images for group '{prefix}'")
                 try:
+                    # Create video clip in memory (no output_path = returns VideoClip)
                     group_video = self.create_video_from_images(
-                        image_paths=group_images, audio_path=audio_path, output_path=None,
-                        width=width, height=height, fps=fps, progress_callback=group_progress_callback
+                        image_paths=group_images,
+                        audio_path=audio_path,
+                        output_path=None,  # Key: process in memory
+                        width=width,
+                        height=height,
+                        fps=fps,
+                        progress_callback=None  # Avoid nested progress callbacks
                     )
                     print(f"DEBUG: create_video_from_images returned: {type(group_video)} for group '{prefix}'")
                     if group_video and hasattr(group_video, 'duration') and group_video.duration > 0:
@@ -340,42 +345,47 @@ class VideoProcessor:
             if progress_callback: progress_callback("Audio track created.", 70)
 
             # Phase 5: Writing final video (70-100%)
-            writing_progress_start = 70
-            writing_progress_total = 30
-            progress_per_segment = writing_progress_total / num_groups if num_groups > 0 else 0
-
-            def custom_logger(bar_name, current_frame, total_frames):
-                if total_frames > 0:
-                    segment_progress = (current_frame / total_frames) * 100
-                    try:
-                        segment_num_str = re.search(r'(\d+)/\d+', bar_name).group(1)
-                        segment_num = int(segment_num_str) - 1
-                    except (AttributeError, ValueError):
-                        segment_num = 0
-
-                    base_progress = writing_progress_start + (segment_num * progress_per_segment)
-                    current_segment_contribution = (segment_progress / 100) * progress_per_segment
-                    total_progress = base_progress + current_segment_contribution
-
-                    if progress_callback:
-                        progress_callback(f"Writing segment {segment_num+1}/{num_groups} ({int(segment_progress)}%)", total_progress)
-
-            class ProgressLogger:
-                def __init__(self, callback):
+            if progress_callback: progress_callback("Writing final video...", 70)
+            
+            # Custom progress tracking for video writing
+            class VideoWriteProgressLogger:
+                def __init__(self, callback, start_progress=70, end_progress=100):
                     self.callback = callback
+                    self.start_progress = start_progress
+                    self.progress_range = end_progress - start_progress
+                    self.last_progress = start_progress
+                
                 def __call__(self, *args, **kwargs):
-                    if len(args) == 3:
-                        self.callback(args[0], args[1], args[2])
-
+                    # MoviePy logger callback with (bar_name, current_frame, total_frames)
+                    if len(args) == 3 and args[2] > 0:
+                        bar_name, current_frame, total_frames = args
+                        write_progress = (current_frame / total_frames) * 100
+                        total_progress = self.start_progress + (write_progress / 100) * self.progress_range
+                        
+                        # Only update if progress increased significantly (reduce callback frequency)
+                        if total_progress - self.last_progress >= 1:
+                            if self.callback:
+                                self.callback(f"Writing video: {int(write_progress)}% complete", total_progress)
+                            self.last_progress = total_progress
+                
                 def iter_bar(self, **kwargs):
+                    # Handle audio processing progress
                     iterable = kwargs.get('iterable', [])
-                    for i in iterable:
-                        yield i
-
+                    total_items = len(list(iterable)) if hasattr(iterable, '__len__') else 100
+                    for i, item in enumerate(iterable):
+                        if self.callback and total_items > 0:
+                            audio_progress = (i / total_items) * 20  # Audio is ~20% of writing process
+                            total_progress = self.start_progress + audio_progress
+                            if total_progress - self.last_progress >= 2:
+                                self.callback(f"Processing audio: {int((i/total_items)*100)}%", total_progress)
+                                self.last_progress = total_progress
+                        yield item
+                
                 def bars_end(self):
-                    pass
-
-            progress_logger = ProgressLogger(custom_logger)
+                    if self.callback:
+                        self.callback("Finalizing video file...", 95)
+            
+            progress_logger = VideoWriteProgressLogger(progress_callback)
 
             print(f"DEBUG: About to write final video to: {output_path}")
             final_video.write_videofile(
@@ -383,8 +393,8 @@ class VideoProcessor:
                 fps=fps,
                 codec='libx264',
                 audio_codec='aac',
-                verbose=False,
-                logger=progress_logger,
+                verbose=True,
+                logger=None,
                 temp_audiofile='temp-audio.m4a',
                 remove_temp=True
             )
@@ -400,6 +410,9 @@ class VideoProcessor:
                     print(f"DEBUG: WARNING - File size is suspiciously small: {file_size} bytes")
             else:
                 print(f"DEBUG: ERROR - Output file does not exist: {output_path}")
+
+            # Memory-based processing completed successfully
+            print("DEBUG: Video processing completed using in-memory clips")
 
             # Clean up
             if isinstance(audio_clip, AudioFileClip):

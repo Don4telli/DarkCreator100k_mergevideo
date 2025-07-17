@@ -1,0 +1,538 @@
+(base) admin@iMacTom DarkCreator100k_mergevideo cleaned % /Users/admin/miniconda3/bin/python "/Users/admin/Desktop/APP/DarkCreator100k_mergevideo cleaned/g
+ui_web.py"
+ImageToVideo Web GUI
+====================
+
+🌐 Starting web server on http://localhost:5004
+The web interface will open automatically in your browser.
+Press Ctrl+C to stop the server.
+
+ * Serving Flask app 'gui_web'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://localhost:5004
+Press CTRL+C to quit
+127.0.0.1 - - [17/Jul/2025 17:19:29] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:43] "POST /upload HTTP/1.1" 200 -
+DEBUG: Received request data: {'session_id': 'tmp2zvclmvn', 'aspect_ratio': '9:16', 'fps': '30', 'multi_video_mode': True, 'green_screen_duration': '5.0'}
+DEBUG: multi_video_mode = True
+DEBUG: green_screen_duration = 5.0
+DEBUG: Found 60 images
+DEBUG: First few image names: ['image_000_C12.png', 'image_001_D14.png', 'image_002_D15.png', 'image_003_D10.png', 'image_004_D11.png']
+DEBUG: create_multi_video_with_separators called with 60 images
+127.0.0.1 - - [17/Jul/2025 17:19:43] "POST /create_video HTTP/1.1" 200 -
+DEBUG: green_screen_duration = 5.0
+DEBUG: aspect_ratio = 9:16
+DEBUG: Processing filename: image_000_C12.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_000_C12.png
+DEBUG: Processing filename: image_001_D14.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_001_D14.png
+DEBUG: Processing filename: image_002_D15.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_002_D15.png
+DEBUG: Processing filename: image_003_D10.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_003_D10.png
+DEBUG: Processing filename: image_004_D11.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_004_D11.png
+DEBUG: Processing filename: image_005_D12.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_005_D12.png
+DEBUG: Processing filename: image_006_D13.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_006_D13.png
+DEBUG: Processing filename: image_007_D6.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_007_D6.png
+DEBUG: Processing filename: image_008_D7.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_008_D7.png
+DEBUG: Processing filename: image_009_D8.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_009_D8.png
+DEBUG: Processing filename: image_010_D9.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_010_D9.png
+DEBUG: Processing filename: image_011_D1.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_011_D1.png
+DEBUG: Processing filename: image_012_D2.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_012_D2.png
+DEBUG: Processing filename: image_013_D3.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_013_D3.png
+DEBUG: Processing filename: image_014_D4.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_014_D4.png
+DEBUG: Processing filename: image_015_D5.png
+DEBUG: Extracted prefix 'D' from uploaded file: image_015_D5.png
+DEBUG: Processing filename: image_016_C13.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_016_C13.png
+DEBUG: Processing filename: image_017_C14.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_017_C14.png
+DEBUG: Processing filename: image_018_C15.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_018_C15.png
+DEBUG: Processing filename: image_019_C8.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_019_C8.png
+DEBUG: Processing filename: image_020_C9.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_020_C9.png
+DEBUG: Processing filename: image_021_C10.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_021_C10.png
+DEBUG: Processing filename: image_022_C11.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_022_C11.png
+DEBUG: Processing filename: image_023_C4.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_023_C4.png
+DEBUG: Processing filename: image_024_C5.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_024_C5.png
+DEBUG: Processing filename: image_025_C6.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_025_C6.png
+DEBUG: Processing filename: image_026_C7.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_026_C7.png
+DEBUG: Processing filename: image_027_B15.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_027_B15.png
+DEBUG: Processing filename: image_028_C1.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_028_C1.png
+DEBUG: Processing filename: image_029_C2.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_029_C2.png
+DEBUG: Processing filename: image_030_C3.png
+DEBUG: Extracted prefix 'C' from uploaded file: image_030_C3.png
+DEBUG: Processing filename: image_031_B10.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_031_B10.png
+DEBUG: Processing filename: image_032_B11.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_032_B11.png
+DEBUG: Processing filename: image_033_B12.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_033_B12.png
+DEBUG: Processing filename: image_034_B13.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_034_B13.png
+DEBUG: Processing filename: image_035_B14.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_035_B14.png
+DEBUG: Processing filename: image_036_B6.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_036_B6.png
+DEBUG: Processing filename: image_037_B7.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_037_B7.png
+DEBUG: Processing filename: image_038_B8.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_038_B8.png
+DEBUG: Processing filename: image_039_B9.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_039_B9.png
+DEBUG: Processing filename: image_040_B2.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_040_B2.png
+DEBUG: Processing filename: image_041_B3.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_041_B3.png
+DEBUG: Processing filename: image_042_B4.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_042_B4.png
+DEBUG: Processing filename: image_043_B5.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_043_B5.png
+DEBUG: Processing filename: image_044_A13.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_044_A13.png
+DEBUG: Processing filename: image_045_A14.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_045_A14.png
+DEBUG: Processing filename: image_046_A15.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_046_A15.png
+DEBUG: Processing filename: image_047_B1.png
+DEBUG: Extracted prefix 'B' from uploaded file: image_047_B1.png
+DEBUG: Processing filename: image_048_A10.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_048_A10.png
+DEBUG: Processing filename: image_049_A11.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_049_A11.png
+DEBUG: Processing filename: image_050_A12.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_050_A12.png
+DEBUG: Processing filename: image_051_A6.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_051_A6.png
+DEBUG: Processing filename: image_052_A7.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_052_A7.png
+DEBUG: Processing filename: image_053_A8.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_053_A8.png
+DEBUG: Processing filename: image_054_A9.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_054_A9.png
+DEBUG: Processing filename: image_055_A4.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_055_A4.png
+DEBUG: Processing filename: image_056_A5.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_056_A5.png
+DEBUG: Processing filename: image_057_A2.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_057_A2.png
+DEBUG: Processing filename: image_058_A3.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_058_A3.png
+DEBUG: Processing filename: image_059_A1.png
+DEBUG: Extracted prefix 'A' from uploaded file: image_059_A1.png
+DEBUG: Sorted group 'C': ['image_028_C1.png', 'image_029_C2.png', 'image_030_C3.png', 'image_023_C4.png', 'image_024_C5.png', 'image_025_C6.png', 'image_026_C7.png', 'image_019_C8.png', 'image_020_C9.png', 'image_021_C10.png', 'image_022_C11.png', 'image_000_C12.png', 'image_016_C13.png', 'image_017_C14.png', 'image_018_C15.png']
+DEBUG: Sorted group 'D': ['image_011_D1.png', 'image_012_D2.png', 'image_013_D3.png', 'image_014_D4.png', 'image_015_D5.png', 'image_007_D6.png', 'image_008_D7.png', 'image_009_D8.png', 'image_010_D9.png', 'image_003_D10.png', 'image_004_D11.png', 'image_005_D12.png', 'image_006_D13.png', 'image_001_D14.png', 'image_002_D15.png']
+DEBUG: Sorted group 'B': ['image_047_B1.png', 'image_040_B2.png', 'image_041_B3.png', 'image_042_B4.png', 'image_043_B5.png', 'image_036_B6.png', 'image_037_B7.png', 'image_038_B8.png', 'image_039_B9.png', 'image_031_B10.png', 'image_032_B11.png', 'image_033_B12.png', 'image_034_B13.png', 'image_035_B14.png', 'image_027_B15.png']
+DEBUG: Sorted group 'A': ['image_059_A1.png', 'image_057_A2.png', 'image_058_A3.png', 'image_055_A4.png', 'image_056_A5.png', 'image_051_A6.png', 'image_052_A7.png', 'image_053_A8.png', 'image_054_A9.png', 'image_048_A10.png', 'image_049_A11.png', 'image_050_A12.png', 'image_044_A13.png', 'image_045_A14.png', 'image_046_A15.png']
+DEBUG: Final groups: {'C': ['/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_028_C1.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_029_C2.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_030_C3.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_023_C4.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_024_C5.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_025_C6.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_026_C7.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_019_C8.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_020_C9.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_021_C10.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_022_C11.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_000_C12.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_016_C13.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_017_C14.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_018_C15.png'], 'D': ['/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_011_D1.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_012_D2.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_013_D3.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_014_D4.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_015_D5.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_007_D6.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_008_D7.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_009_D8.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_010_D9.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_003_D10.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_004_D11.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_005_D12.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_006_D13.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_001_D14.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_002_D15.png'], 'B': ['/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_047_B1.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_040_B2.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_041_B3.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_042_B4.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_043_B5.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_036_B6.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_037_B7.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_038_B8.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_039_B9.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_031_B10.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_032_B11.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_033_B12.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_034_B13.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_035_B14.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_027_B15.png'], 'A': ['/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_059_A1.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_057_A2.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_058_A3.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_055_A4.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_056_A5.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_051_A6.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_052_A7.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_053_A8.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_054_A9.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_048_A10.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_049_A11.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_050_A12.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_044_A13.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_045_A14.png', '/var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/image_046_A15.png']}
+DEBUG: Found 4 image groups: ['C', 'D', 'B', 'A']
+DEBUG: Processing group 1/4: 'A' with 15 images
+DEBUG: About to call create_video_from_images for group 'A'
+DEBUG: create_video_from_images returned: <class 'moviepy.video.VideoClip.VideoClip'> for group 'A'
+DEBUG: Successfully created segment for 'A' with duration 71.86s.
+DEBUG: Processing group 2/4: 'B' with 15 images
+DEBUG: About to call create_video_from_images for group 'B'
+DEBUG: create_video_from_images returned: <class 'moviepy.video.VideoClip.VideoClip'> for group 'B'
+DEBUG: Successfully created segment for 'B' with duration 71.86s.
+DEBUG: Processing group 3/4: 'C' with 15 images
+DEBUG: About to call create_video_from_images for group 'C'
+127.0.0.1 - - [17/Jul/2025 17:19:44] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+DEBUG: create_video_from_images returned: <class 'moviepy.video.VideoClip.VideoClip'> for group 'C'
+DEBUG: Successfully created segment for 'C' with duration 71.86s.
+DEBUG: Processing group 4/4: 'D' with 15 images
+DEBUG: About to call create_video_from_images for group 'D'
+DEBUG: create_video_from_images returned: <class 'moviepy.video.VideoClip.VideoClip'> for group 'D'
+DEBUG: Successfully created segment for 'D' with duration 71.86s.
+DEBUG: Created 4 video segments out of 4 groups.
+DEBUG: Starting Phase 2 - Video concatenation and writing
+DEBUG: Building final clips list with 4 segments
+DEBUG: Adding segment 1/4 to final clips
+DEBUG: Creating green screen separator 1
+DEBUG: Adding segment 2/4 to final clips
+DEBUG: Creating green screen separator 2
+DEBUG: Adding segment 3/4 to final clips
+DEBUG: Creating green screen separator 3
+DEBUG: Adding segment 4/4 to final clips
+DEBUG: Final clips list has 7 clips total
+DEBUG: About to concatenate 7 clips
+DEBUG: Video concatenation completed successfully
+DEBUG: Creating audio track for 4 groups
+DEBUG: Concatenating 7 audio segments
+DEBUG: Setting audio to final video
+DEBUG: Final video prepared, duration: 302.44s
+DEBUG: About to write final video to: /var/folders/_n/qylnksxd1496sh2vg5cqhtkw0000gn/T/tmp2zvclmvn/output.mp4
+127.0.0.1 - - [17/Jul/2025 17:19:45] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:45] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:46] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:46] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:47] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:47] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:48] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:48] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:49] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:49] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:50] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:50] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:51] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:51] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:52] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:52] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:53] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:53] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:54] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:54] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:55] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:55] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:56] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:56] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:57] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:57] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:58] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:58] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:19:59] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:19:59] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:00] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:00] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:01] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:01] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:02] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:02] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:03] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:03] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:04] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:04] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:05] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:05] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:06] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:06] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:07] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:07] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:08] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:08] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:09] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:09] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:10] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:10] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:11] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:11] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:12] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:12] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:13] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:13] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:14] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:14] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:15] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:15] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:16] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:16] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:17] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:17] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:18] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:18] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:19] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:19] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:20] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:20] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:21] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:21] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:22] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:22] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:23] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:23] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:24] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:24] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:25] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:25] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:26] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:26] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:27] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:27] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:28] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:28] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:29] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:29] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:30] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:30] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:31] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:31] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:32] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:32] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:33] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:33] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:34] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:34] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:35] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:35] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:36] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:36] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:37] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:37] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:38] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:38] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:39] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:39] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:40] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:40] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:41] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:41] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:42] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:42] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:43] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:43] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:44] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:44] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:45] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:45] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:46] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:46] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:47] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:47] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:48] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:48] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:49] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:49] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:50] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:50] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:51] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:51] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:52] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:52] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:53] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:53] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:54] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:54] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:55] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:55] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:56] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:56] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:57] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:57] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:58] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:58] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:20:59] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:20:59] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:00] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:00] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:02] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:02] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:02] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:02] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:03] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:03] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:04] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:04] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:05] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:05] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:06] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:06] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:07] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:07] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:08] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:08] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:09] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:09] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:10] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:10] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:11] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:11] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:12] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:12] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:13] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:13] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:14] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:14] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:15] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:15] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:16] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:16] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:17] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:17] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:18] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:18] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:19] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:19] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:20] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:20] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:21] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:21] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:22] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:22] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:23] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:23] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:24] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:24] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:25] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:25] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:26] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:26] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:27] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:27] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:28] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:28] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:29] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:29] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:30] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:30] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:31] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:31] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:32] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:32] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:33] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:33] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:34] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:34] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:35] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:35] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:36] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:36] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:37] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:37] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:38] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:38] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:39] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:39] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:40] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:40] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:41] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:41] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:42] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:42] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:43] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:43] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:44] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:44] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:45] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:45] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:46] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:46] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:47] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:47] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:48] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:48] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:49] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:49] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:50] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:50] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:51] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:51] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:52] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:52] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:53] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:53] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:54] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:54] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:55] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:55] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:56] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:56] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:57] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:57] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:58] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:58] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:21:59] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:21:59] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:00] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:00] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:01] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:01] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:02] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:02] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:03] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:03] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:04] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:04] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:05] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:05] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:06] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:06] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:07] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:07] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:08] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:08] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:09] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:09] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:10] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:10] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:11] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:11] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:12] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:12] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:13] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:13] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:14] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:14] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:15] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:15] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:16] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:16] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:17] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:17] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:18] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:18] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:19] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:19] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:20] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:20] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:21] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:21] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:22] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:22] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:23] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:23] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:24] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:24] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:25] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:25] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:26] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:26] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:27] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:27] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:28] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:28] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:29] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:29] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:30] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:30] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:31] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:31] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:32] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:32] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:33] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:33] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:34] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:34] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:35] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:35] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:36] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:36] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:22:37] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:37] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+DEBUG: Video file writing completed successfully
+DEBUG: Output file size: 16884555 bytes
+127.0.0.1 - - [17/Jul/2025 17:22:38] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:22:38] "GET /progress?session_id=tmp2zvclmvn&type=create HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jul/2025 17:23:36] "GET /download/tmp2zvclmvn HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jul/2025 17:23:36] "GET /download/tmp2zvclmvn HTTP/1.1" 200 -

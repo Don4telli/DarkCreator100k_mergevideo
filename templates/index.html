@@ -237,7 +237,8 @@
         // --- FUNÇÕES COMUNS DE UI ---
         function startProgressCheck(sessionId, type) {
             if (progressInterval) clearInterval(progressInterval);
-            progressInterval = setInterval(() => checkProgress(sessionId, type), 2500);
+            // Intervalo mais frequente para melhor responsividade
+            progressInterval = setInterval(() => checkProgress(sessionId, type), 1000);
         }
 
         async function checkProgress(sessionId, type) {
@@ -252,18 +253,51 @@
                 const progressStatusText = document.getElementById(`${type}ProgressStatus`);
                 
                 const progress = Math.round(data.progress || 0);
+                
+                // Animação suave do progresso
+                progressCircle.style.transition = 'background 0.3s ease';
                 progressCircle.style.background = `conic-gradient(#007AFF ${progress * 3.6}deg, #f0f0f0 ${progress * 3.6}deg)`;
                 progressTextElem.textContent = `${progress}%`;
-                progressStatusText.textContent = data.message;
-
-                if (data.message && (data.message.toLowerCase().includes('erro') || data.message.toLowerCase().includes('falha'))) {
-                    handleTaskEnd(sessionId, type, false, data.message, data);
-                } else if (progress >= 100) {
-                    handleTaskEnd(sessionId, type, true, data.message, data);
+                
+                // Mensagem mais detalhada e formatada
+                const message = data.message || 'Processando...';
+                progressStatusText.innerHTML = formatProgressMessage(message, progress);
+                
+                // Detecção de erro melhorada
+                const isError = message && (
+                    message.toLowerCase().includes('erro') || 
+                    message.toLowerCase().includes('falha') ||
+                    message.toLowerCase().includes('error') ||
+                    message.toLowerCase().includes('failed')
+                );
+                
+                if (isError) {
+                    progressCircle.style.background = `conic-gradient(#FF3B30 ${progress * 3.6}deg, #f0f0f0 ${progress * 3.6}deg)`;
+                    handleTaskEnd(sessionId, type, false, message, data);
+                } else if (progress >= 100 || message.toLowerCase().includes('completo') || message.toLowerCase().includes('complete')) {
+                    handleTaskEnd(sessionId, type, true, message, data);
                 }
             } catch (err) {
                 handleTaskEnd(null, type, false, 'Falha ao obter progresso.', {});
             }
+        }
+        
+        function formatProgressMessage(message, progress) {
+            // Formatação especial para diferentes tipos de mensagem
+            if (message.includes('Writing video:')) {
+                return `<strong>📹 ${message}</strong>`;
+            } else if (message.includes('Processing audio:')) {
+                return `<strong>🎵 ${message}</strong>`;
+            } else if (message.includes('Creating video segment')) {
+                return `<strong>🎬 ${message}</strong>`;
+            } else if (message.includes('Loading')) {
+                return `<strong>📂 ${message}</strong>`;
+            } else if (message.includes('Finalizing')) {
+                return `<strong>✨ ${message}</strong>`;
+            } else if (message.includes('Grouping')) {
+                return `<strong>📋 ${message}</strong>`;
+            }
+            return message;
         }
 
         function handleTaskEnd(sessionId, type, success, message, data) {

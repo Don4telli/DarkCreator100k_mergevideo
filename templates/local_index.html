@@ -126,94 +126,37 @@
             const downloadSection = document.getElementById('createDownloadSection');
 
             btn.disabled = true;
-            btn.textContent = 'Preparando upload...';
+            btn.textContent = 'Enviando arquivos...';
             messageArea.innerHTML = '';
             progressContainer.style.display = 'block';
             downloadSection.style.display = 'none';
 
-            const imageFiles = document.getElementById('images').files;
-            const audioFile = document.getElementById('audio').files[0];
+            const formData = new FormData(createForm);
 
             try {
-                // 1. Coleta os nomes de todos os arquivos para pedir URLs assinadas
-                const allFilenames = [];
-                for (const file of imageFiles) {
-                    allFilenames.push(file.name);
-                }
-                if (audioFile) {
-                    allFilenames.push(audioFile.name);
-                }
-
-                // 2. Chama o backend para obter URLs de upload assinadas para TODOS os arquivos
-                const urlsResponse = await fetch('/generate_upload_urls', {
+                const uploadResponse = await fetch('/upload', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filenames: allFilenames }) // <-- ENVIA A LISTA AQUI
-                });
-                const urlsData = await urlsResponse.json();
-                if (!urlsResponse.ok || !urlsData) {
-                    throw new Error(urlsData.error || `Falha ao obter URLs de upload (${urlsResponse.status})`);
-                }
-
-                // 3. Faz o upload de cada arquivo diretamente para o Google Cloud Storage
-                btn.textContent = 'Enviando arquivos...';
-                const uploadedGcsPaths = [];
-                
-                const uploadPromises = [];
-                for (let i = 0; i < imageFiles.length; i++) {
-                    const file = imageFiles[i];
-                    const uploadInfo = urlsData[file.name];
-                    uploadedGcsPaths.push({ gcsPath: uploadInfo.gcsPath, type: 'image' });
-
-                    uploadPromises.push(
-                        fetch(uploadInfo.signedUrl, {
-                            method: 'PUT',
-                            body: file,
-                            headers: { 'Content-Type': file.type || 'application/octet-stream' }
-                        })
-                    );
-                }
-
-                if (audioFile) {
-                    const uploadInfo = urlsData[audioFile.name];
-                    uploadedGcsPaths.push({ gcsPath: uploadInfo.gcsPath, type: 'audio' });
-                    uploadPromises.push(
-                        fetch(uploadInfo.signedUrl, {
-                            method: 'PUT',
-                            body: audioFile,
-                            headers: { 'Content-Type': audioFile.type || 'application/octet-stream' }
-                        })
-                    );
-                }
-                await Promise.all(uploadPromises);
-
-                // 4. Chama o backend para criar o vídeo, passando os caminhos GCS
-                btn.textContent = 'Iniciando processamento...';
-
-                // CORREÇÃO: Obtenha os valores diretamente dos elementos do formulário
-                const aspectRatio = document.getElementById('aspect_ratio').value;
-                const fps = document.getElementById('fps').value;
-                const greenScreenDuration = document.getElementById('green_screen_duration').value;
-                const outputName = document.getElementById('output_name').value;
-
-                const response = await fetch('/create_video', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        files: uploadedGcsPaths, // Lista de objetos com gcsPath e type
-                        aspect_ratio: aspectRatio,
-                        fps: fps,
-                        green_screen_duration: greenScreenDuration,
-                        output_name: outputName,
-                    }),
+                    body: formData
                 });
 
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.error || `O servidor respondeu com status ${response.status}`);
+                const uploadResult = await uploadResponse.json();
+                if (!uploadResponse.ok) {
+                    throw new Error(uploadResult.error || 'Falha no upload de arquivos');
                 }
-                
-                startProgressCheck(result.session_id, 'create');
+
+                btn.textContent = 'Criando vídeo...';
+                const createResponse = await fetch('/create_video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(uploadResult)
+                });
+
+                const createResult = await createResponse.json();
+                if (!createResponse.ok) {
+                    throw new Error(createResult.error || 'Falha na criação do vídeo');
+                }
+
+                startProgressCheck(uploadResult.session_id, 'create');
 
             } catch (err) {
                 handleTaskEnd(null, 'create', false, err.message);
