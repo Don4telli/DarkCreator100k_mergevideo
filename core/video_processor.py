@@ -369,13 +369,14 @@ class VideoProcessor:
                     if self.callback:
                         self.callback("Finalizing video file...", 95)
             
-            progress_logger = VideoWriteProgressLogger(progress_callback)
+            # Instancia o logger que você criou, passando a função de callback
+            progress_logger = VideoWriteProgressLogger(progress_callback, start_progress=70, end_progress=99)
 
             print(f"DEBUG: About to write final video to: {output_path}")
-
-            # *** CORREÇÃO APLICADA ***
-            # verbose=False para não poluir os logs
-            # logger=progress_logger para ativar o callback de progresso
+            
+            # *** CORREÇÃO CRÍTICA APLICADA ***
+            # verbose=False para não poluir os logs do Cloud Run
+            # logger=progress_logger para ATIVAR o seu callback de progresso
             final_video.write_videofile(
                 output_path,
                 fps=fps,
@@ -386,7 +387,8 @@ class VideoProcessor:
                 temp_audiofile='temp-audio.m4a',
                 remove_temp=True
             )
-            print(f"DEBUG: Video file writing completed successfully")
+            
+            print(f"DEBUG: MoviePy's write_videofile function has completed.")
             if progress_callback: progress_callback("Video created successfully!", 100)
             
             # Check file size
