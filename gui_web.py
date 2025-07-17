@@ -18,13 +18,14 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.video_processor import VideoProcessor
-
+from core.tiktok_transcription import transcribe_tiktok_video
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 
 # Global variables for progress tracking
 progress_data = {}
+transcription_results = {}  # Global storage for transcription results
 video_processor = VideoProcessor()
 
 @app.route('/')
@@ -242,7 +243,81 @@ def upload_video():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/transcribe_tiktok', methods=['POST'])
+def transcribe_tiktok():
+    try:
+        data = request.get_json()
+        url = data.get('url')
+        
+        if not url:
+            return jsonify({'error': 'No TikTok URL provided'}), 400
+        
+        # Create session for this transcription
+        temp_dir = tempfile.mkdtemp()
+        session_id = os.path.basename(temp_dir)
+        
+        # Reset progress
+        key = f"{session_id}_transcribe"
+        progress_data[key] = {'progress': 0, 'message': 'Starting TikTok transcription...'}
+        
+        def progress_callback(message, progress=None):
+            if progress is not None:
+                progress_data[key]['progress'] = progress
+            progress_data[key]['message'] = message
+        
+        # Transcribe in a separate thread
+        def transcribe_thread():
+            try:
+                result = transcribe_tiktok_video(url, progress_callback)
+                transcription_results[session_id] = result
+                
+                if result['success']:
+                    progress_data[key]['progress'] = 100
+                    progress_data[key]['message'] = 'Transcription completed successfully!'
+                else:
+                    progress_data[key]['message'] = f'Transcription failed: {result.get("error", "Unknown error")}'
+                    
+            except Exception as e:
+                import traceback
+                tb_str = traceback.format_exc()
+                error_message = f'Error: {str(e)}\nTraceback\n{tb_str}'
+                progress_data[key]['message'] = error_message
+                transcription_results[session_id] = {'success': False, 'error': error_message}
+                app.logger.error(error_message)
+        
+        thread = threading.Thread(target=transcribe_thread)
+        thread.start()
+        
+        return jsonify({'success': True, 'session_id': session_id, 'message': 'Transcription started'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
+@app.route('/get_transcription/<session_id>')
+def get_transcription(session_id):
+    try:
+        # Check if transcription results exist
+        if session_id not in transcription_results:
+            return jsonify({'error': 'Transcription not found or still in progress'}), 404
+        
+        result = transcription_results[session_id]
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'text': result['text'],
+                'session_id': session_id,
+                'url': result.get('url', '')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Unknown error'),
+                'session_id': session_id
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 def find_free_port(start_port=5001):
