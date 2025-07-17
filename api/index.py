@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
 import google.cloud.logging as cloud_logging
 from google.cloud import storage
+from datetime import datetime, timedelta
 import traceback
 
 # As importações agora funcionam diretamente graças ao PYTHONPATH no Dockerfile.
@@ -57,40 +58,45 @@ def index():
 
 @app.route('/create_video', methods=['POST'])
 def create_video():
-    app.logger.info('[INFO] POST /create_video iniciado')
+    app.logger.info('[INFO] POST /create_video iniciado com upload direto')
     try:
+        data = request.get_json()
         temp_dir = tempfile.mkdtemp(dir='/tmp')
         session_id = os.path.basename(temp_dir)
-        
-        image_files = request.files.getlist('images')
-        image_paths = []
-        for i, file in enumerate(image_files):
-            if file and file.filename:
-                filename = secure_filename(f"image_{i:03d}_{file.filename}")
-                filepath = os.path.join(temp_dir, filename)
-                file.save(filepath)
-                app.logger.info(f'[INFO] Arquivo de imagem salvo temporariamente em {filepath}')
-                image_paths.append(filepath)
+
+        def download_from_gcs(gcs_path, local_dir):
+            if not gcs_path.startswith('gs://'):
+                raise ValueError("Invalid GCS path")
+            path_parts = gcs_path.replace('gs://', '').split('/')
+            bucket_name = path_parts[0]
+            blob_name = '/'.join(path_parts[1:])
+            local_filename = os.path.basename(blob_name)
+            local_filepath = os.path.join(local_dir, local_filename)
+            
+            bucket = storage_client.bucket(bucket_name)
+            blob = bucket.blob(blob_name)
+            blob.download_to_filename(local_filepath)
+            app.logger.info(f'[INFO] Baixado {gcs_path} para {local_filepath}')
+            return local_filepath
+
+        image_gcs_paths = data.get('image_paths', [])
+        image_paths = [download_from_gcs(p, temp_dir) for p in image_gcs_paths]
 
         if not image_paths:
             return jsonify({'error': 'Nenhuma imagem foi enviada.'}), 400
 
         audio_path = None
-        if 'audio' in request.files and request.files['audio'].filename:
-            audio_file = request.files['audio']
-            audio_filename = secure_filename(f"audio_{audio_file.filename}")
-            audio_path = os.path.join(temp_dir, audio_filename)
-            audio_file.save(audio_path)
-            app.logger.info(f'[INFO] Arquivo de áudio salvo temporariamente em {audio_path}')
+        if data.get('audio_path'):
+            audio_path = download_from_gcs(data['audio_path'], temp_dir)
 
         num_images = len(image_paths)
         num_audio = 1 if audio_path else 0
-        app.logger.info(f'[INFO] {num_images} imagens e {num_audio} áudio recebidos')
+        app.logger.info(f'[INFO] {num_images} imagens e {num_audio} áudio baixados do GCS')
 
-        aspect_ratio = request.form.get('aspect_ratio', '9:16')
-        fps = int(request.form.get('fps', 30))
-        green_screen_duration = float(request.form.get('green_screen_duration', 5.0))
-        output_filename = request.form.get('output_name', 'output.mp4')
+        aspect_ratio = data.get('aspect_ratio', '9:16')
+        fps = int(data.get('fps', 30))
+        green_screen_duration = float(data.get('green_screen_duration', 5.0))
+        output_filename = data.get('output_name', 'output.mp4')
         output_path = os.path.join(temp_dir, secure_filename(output_filename))
         
         key = f"{session_id}_create"
@@ -133,6 +139,7 @@ def create_video():
                     )
                     progress_data[key]['signed_url'] = signed_url
                     progress_data[key]['public_url'] = f'gs://{bucket_name}/{blob_name}'
+                    progress_data[key]['output_name'] = output_filename
                     
                     progress_callback('Upload concluído! Vídeo pronto para download.', 100)
                     
@@ -163,6 +170,27 @@ def create_video():
         return jsonify({'error': str(e)}), 500
 
 
+
+@app.route('/generate_upload_url', methods=['POST'])
+def generate_upload_url():
+    try:
+        data = request.get_json()
+        filename = data.get('filename')
+        if not filename:
+            return jsonify({'error': 'Filename is required'}), 400
+        session_id = data.get('session_id') or 'temp'
+        blob_name = f'uploads/{session_id}/{secure_filename(filename)}'
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        url = blob.generate_signed_url(
+            version='v4',
+            expiration=timedelta(minutes=15),
+            method='PUT',
+            content_type='application/octet-stream',
+        )
+        return jsonify({'upload_url': url, 'gcs_path': f'gs://{bucket_name}/{blob_name}'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/upload_video', methods=['POST'])
 def upload_video():

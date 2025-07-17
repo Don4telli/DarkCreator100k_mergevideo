@@ -122,11 +122,50 @@
             downloadSection.style.display = 'none';
 
             const formData = new FormData(createForm);
-            
+            const imageFiles = document.getElementById('images').files;
+            const audioFile = document.getElementById('audio').files[0];
+
             try {
+                const uploadFile = async (file) => {
+                    const res = await fetch('/generate_upload_url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filename: file.name })
+                    });
+                    const { upload_url, gcs_path } = await res.json();
+                    if (!upload_url) throw new Error('Failed to get upload URL.');
+
+                    await fetch(upload_url, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+                        body: file
+                    });
+                    return gcs_path;
+                };
+
+                const imagePaths = [];
+                for (const file of imageFiles) {
+                    imagePaths.push(await uploadFile(file));
+                }
+
+                let audioPath = null;
+                if (audioFile) {
+                    audioPath = await uploadFile(audioFile);
+                }
+
+                const payload = {
+                    image_paths: imagePaths,
+                    audio_path: audioPath,
+                    aspect_ratio: formData.get('aspect_ratio'),
+                    fps: formData.get('fps'),
+                    green_screen_duration: formData.get('green_screen_duration'),
+                    output_name: formData.get('output_name'),
+                };
+
                 const response = await fetch('/create_video', {
                     method: 'POST',
-                    body: formData,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
                 });
 
                 const result = await response.json();
@@ -166,16 +205,16 @@
                 progressStatusText.textContent = data.message;
 
                 if (data.message && (data.message.toLowerCase().includes('erro') || data.message.toLowerCase().includes('falha'))) {
-                    handleTaskEnd(sessionId, type, false, data.message);
+                    handleTaskEnd(sessionId, type, false, data.message, data);
                 } else if (progress >= 100) {
-                    handleTaskEnd(sessionId, type, true, data.message);
+                    handleTaskEnd(sessionId, type, true, data.message, data);
                 }
             } catch (err) {
-                handleTaskEnd(null, type, false, 'Falha ao obter progresso.');
+                handleTaskEnd(null, type, false, 'Falha ao obter progresso.', {});
             }
         }
 
-        function handleTaskEnd(sessionId, type, success, message) {
+        function handleTaskEnd(sessionId, type, success, message, data) {
             clearInterval(progressInterval);
             const messageArea = document.getElementById(`${type}Message`);
             messageArea.innerHTML = `<div class="${success ? 'success' : 'error'}">${message}</div>`;
@@ -184,9 +223,13 @@
                 const createBtn = document.getElementById('createBtn');
                 createBtn.disabled = false;
                 createBtn.textContent = 'Create Video';
-                if (success && sessionId) {
+                if (success && data.signed_url) {
                     const downloadSection = document.getElementById('createDownloadSection');
-                    downloadSection.innerHTML = `<button onclick="window.location.href='/download/${sessionId}'">Download Video</button>`;
+                    downloadSection.innerHTML = `<a href="${data.signed_url}" class="tool-btn" download="${data.output_name || 'video.mp4'}" style="background-color: #34C759; color: white;">Download Video</a>`;
+                    downloadSection.style.display = 'block';
+                } else if (success && data.local_file) {
+                     const downloadSection = document.getElementById('createDownloadSection');
+                    downloadSection.innerHTML = `<button onclick="window.location.href='/download/${sessionId}'">Download Local Copy</button>`;
                     downloadSection.style.display = 'block';
                 }
             }
