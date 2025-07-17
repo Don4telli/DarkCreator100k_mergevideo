@@ -30,7 +30,7 @@ video_processor = VideoProcessor()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('local_index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_files():

@@ -275,7 +275,7 @@ class VideoProcessor:
             if not video_segments:
                 raise ValueError("No valid video segments could be created. Please check image files and logs.")
 
-            if progress_callback: progress_callback("Processing complete.", 20)
+            if progress_callback: progress_callback("Processando: Combinando segmentos...", 20)
 
             print(f"DEBUG: Starting Phase 2 - Video concatenation and writing")
             # Phase 2: Writing Video (20% to 100%)
@@ -378,8 +378,8 @@ class VideoProcessor:
                 fps=fps,
                 codec='libx264',
                 audio_codec='aac',
-                verbose=True,
-                logger=None,
+                verbose=False,  # Use False para evitar logs duplicados no console
+                logger=progress_logger, # <--- CORREÇÃO APLICADA
                 temp_audiofile='temp-audio.m4a',
                 remove_temp=True
             )
