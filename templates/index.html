@@ -180,15 +180,22 @@
 
                 // 4. Chama o backend para criar o vídeo, passando os caminhos GCS
                 btn.textContent = 'Iniciando processamento...';
+
+                // CORREÇÃO: Obtenha os valores diretamente dos elementos do formulário
+                const aspectRatio = document.getElementById('aspect_ratio').value;
+                const fps = document.getElementById('fps').value;
+                const greenScreenDuration = document.getElementById('green_screen_duration').value;
+                const outputName = document.getElementById('output_name').value;
+
                 const response = await fetch('/create_video', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         files: uploadedGcsPaths, // Lista de objetos com gcsPath e type
-                        aspect_ratio: formData.get('aspect_ratio'),
-                        fps: formData.get('fps'),
-                        green_screen_duration: formData.get('green_screen_duration'),
-                        output_name: formData.get('output_name'),
+                        aspect_ratio: aspectRatio,
+                        fps: fps,
+                        green_screen_duration: greenScreenDuration,
+                        output_name: outputName,
                     }),
                 });
 
