@@ -198,142 +198,83 @@ class VideoProcessor:
     
     def create_multi_video_with_separators(self, image_paths: List[str], audio_path: str, output_path: str, 
                                           aspect_ratio='9:16', fps=30, green_screen_duration=2.0, progress_callback=None) -> None:
-        """Create a video from grouped images, where each group video has the full audio length."""
+        """Create a video from grouped images, with improved error handling and cleanup."""
+        # Listas para rastrear objetos que precisam ser fechados
+        clips_to_close = []
+        
         try:
+            # --- FASE 1: SETUP (0-10%) ---
+            if progress_callback: progress_callback("Initializing...", 1)
             fps = int(fps)
-            print(f"DEBUG: create_multi_video_with_separators called with {len(image_paths)} images")
-            print(f"DEBUG: green_screen_duration = {green_screen_duration}")
-            print(f"DEBUG: aspect_ratio = {aspect_ratio}")
-            
             self.validate_inputs(image_paths, audio_path)
             width, height = self.get_aspect_ratio_dimensions(aspect_ratio)
-
-            # Phase 1: Initial processing (0-10%)
-            if progress_callback: progress_callback("Grouping images...", 2)
+            if progress_callback: progress_callback("Grouping images...", 5)
             image_groups = self.group_images_by_prefix(image_paths)
-            print(f"DEBUG: Found {len(image_groups)} image groups: {list(image_groups.keys())}")
             if not image_groups:
-                raise ValueError("No image groups found.")
-
-            if progress_callback: progress_callback("Loading audio...", 5)
+                raise ValueError("Image grouping failed. Check image filenames for prefixes like 'A1, B1'.")
+            
+            if progress_callback: progress_callback("Loading main audio...", 8)
             audio_clip = AudioFileClip(audio_path)
-            audio_duration = audio_clip.duration
+            clips_to_close.append(audio_clip)
 
-            if progress_callback: progress_callback("Preparing segments...", 10)
-
+            # --- FASE 2: CRIAR SEGMENTOS (10-50%) ---
             video_segments = []
             num_groups = len(image_groups)
             sorted_groups = sorted(image_groups.items())
 
-            # Phase 2: Creating segments in memory (10-50%)
-            segment_progress_start = 10
-            segment_progress_total = 40
-            progress_per_group = segment_progress_total / num_groups if num_groups > 0 else 0
-
             for i, (prefix, group_images) in enumerate(sorted_groups):
-                print(f"DEBUG: Processing group {i+1}/{num_groups}: '{prefix}' with {len(group_images)} images")
-                if not group_images:
-                    self.logger.warning(f"Skipping empty image group: {prefix}")
-                    continue
-
-                if progress_callback:
-                    progress = segment_progress_start + ((i + 1) / num_groups) * segment_progress_total
-                    progress_callback(f"Creating segment for '{prefix}' ({i+1}/{num_groups})", progress)
-
-                print(f"DEBUG: About to call create_video_from_images for group '{prefix}'")
-                try:
-                    # Create video clip in memory (no output_path = returns VideoClip)
-                    group_video = self.create_video_from_images(
-                        image_paths=group_images,
-                        audio_path=audio_path,
-                        output_path=None,  # Key: process in memory
-                        width=width,
-                        height=height,
-                        fps=fps,
-                        progress_callback=None  # Avoid nested progress callbacks
-                    )
-                    print(f"DEBUG: create_video_from_images returned: {type(group_video)} for group '{prefix}'")
-                    if group_video and hasattr(group_video, 'duration') and group_video.duration > 0:
-                        video_segments.append(group_video)
-                        print(f"DEBUG: Successfully created segment for '{prefix}' with duration {group_video.duration}s.")
-                        self.logger.info(f"Successfully created segment for '{prefix}' with duration {group_video.duration}s.")
-                    else:
-                        print(f"DEBUG: Failed to create valid video segment for group '{prefix}'. group_video={group_video}")
-                        self.logger.warning(f"Failed to create a valid video segment for group '{prefix}'. It will be skipped.")
-                except Exception as e:
-                    print(f"DEBUG: Exception during video segment creation for '{prefix}': {str(e)}")
-                    self.logger.error(f"Exception creating segment for '{prefix}': {str(e)}")
-                    continue
-
-            print(f"DEBUG: Created {len(video_segments)} video segments out of {num_groups} groups.")
-            self.logger.debug(f"Created {len(video_segments)} video segments out of {num_groups} groups.")
+                progress = 10 + (i / num_groups) * 40
+                if progress_callback: progress_callback(f"Creating segment for '{prefix}' ({i+1}/{num_groups})", progress)
+                
+                group_video = self.create_video_from_images(
+                    image_paths=group_images, audio_path=audio_path, output_path=None,
+                    width=width, height=height, fps=fps
+                )
+                if group_video:
+                    video_segments.append(group_video)
+                    clips_to_close.append(group_video)
+            
             if not video_segments:
-                raise ValueError("No valid video segments could be created. Please check image files and logs.")
-
-            # Phase 3: Concatenating clips (50-60%)
-            if progress_callback: progress_callback("Concatenating video segments...", 50)
-
+                raise ValueError("No valid video segments could be created.")
+            
+            # --- FASE 3: COMPOSIÇÃO FINAL (50-70%) ---
+            if progress_callback: progress_callback("Combining segments...", 55)
             final_clips = []
-            print(f"DEBUG: Building final clips list with {len(video_segments)} segments")
             for i, segment in enumerate(video_segments):
-                print(f"DEBUG: Adding segment {i+1}/{len(video_segments)} to final clips")
                 final_clips.append(segment)
                 if i < len(video_segments) - 1:
-                    print(f"DEBUG: Creating green screen separator {i+1}")
                     green_clip = self.create_green_screen_clip(green_screen_duration, width, height)
                     final_clips.append(green_clip)
-            print(f"DEBUG: Final clips list has {len(final_clips)} clips total")
-
-            # Ensure all clips have a numeric duration
-            for i, clip in enumerate(final_clips):
-                duration = getattr(clip, 'duration', 0)
-                logging.debug(f"Clip {i}: type={type(clip)}, original duration={repr(duration)}, type={type(duration)}")
-                if duration is None:
-                    duration = 0
-                
-                try:
-                    numeric_duration = float(duration)
-                except (ValueError, TypeError):
-                    logging.error(f"Could not convert duration '{duration}' to float for clip {i}. Defaulting to 0.")
-                    numeric_duration = 0.0
-                
-                clip.duration = numeric_duration
-
-            if not final_clips:
-                raise ValueError("No video clips to process.")
-
-            print(f"DEBUG: About to concatenate {len(final_clips)} clips")
-            final_video = concatenate_videoclips(final_clips, method="compose")
-            print(f"DEBUG: Video concatenation completed successfully")
-            if progress_callback: progress_callback("Video segments concatenated.", 60)
-
-            # Phase 4: Creating audio track (60-70%)
-            if progress_callback: progress_callback("Creating audio track...", 60)
-            print(f"DEBUG: Creating audio track for {num_groups} groups")
+                    clips_to_close.append(green_clip)
+            
+            final_video_no_audio = concatenate_videoclips(final_clips)
+            clips_to_close.append(final_video_no_audio)
+            
+            if progress_callback: progress_callback("Creating final audio track...", 65)
             from moviepy.editor import concatenate_audioclips
             audio_segments = []
-            for i in range(num_groups):
-                audio_segments.append(audio_clip)
-                if i < num_groups - 1:  # Add silence for green screen (except after last group)
-                    silence = audio_clip.subclip(0, green_screen_duration).volumex(0)  # Silent audio
+            for i in range(len(video_segments)):
+                temp_audio = AudioFileClip(audio_path)
+                clips_to_close.append(temp_audio)
+                audio_segments.append(temp_audio)
+                if i < len(video_segments) - 1:
+                    silence = AudioFileClip(audio_path).subclip(0, green_screen_duration).volumex(0)
+                    clips_to_close.append(silence)
                     audio_segments.append(silence)
-            
-            print(f"DEBUG: Concatenating {len(audio_segments)} audio segments")
+                    
             final_audio = concatenate_audioclips(audio_segments)
-            print(f"DEBUG: Setting audio to final video")
+            clips_to_close.append(final_audio)
             
-            final_video = final_video.set_audio(final_audio)
-            if final_video.duration > final_video.audio.duration:
-                final_video.duration = final_video.audio.duration
-            print(f"DEBUG: Final video prepared, duration: {final_video.duration}s")
-            if progress_callback: progress_callback("Audio track created.", 70)
-
-            # Phase 5: Writing final video (70-100%)
-            if progress_callback: progress_callback("Writing final video...", 70)
+            final_video = final_video_no_audio.set_audio(final_audio)
+            final_video.duration = final_audio.duration
+            clips_to_close.append(final_video)
+            
+            # --- FASE 4: RENDERIZAÇÃO E VERIFICAÇÃO (70-100%) ---
+            if progress_callback: progress_callback("Rendering final video...", 70)
             
             # Custom progress tracking for video writing
             class VideoWriteProgressLogger:
-                def __init__(self, callback, start_progress=70, end_progress=100):
+                def __init__(self, callback, start_progress=70, end_progress=99):
                     self.callback = callback
                     self.start_progress = start_progress
                     self.progress_range = end_progress - start_progress
@@ -369,57 +310,52 @@ class VideoProcessor:
                     if self.callback:
                         self.callback("Finalizing video file...", 95)
             
-            # Instancia o logger que você criou, passando a função de callback
             progress_logger = VideoWriteProgressLogger(progress_callback, start_progress=70, end_progress=99)
-
-            print(f"DEBUG: About to write final video to: {output_path}")
             
-            # *** CORREÇÃO CRÍTICA APLICADA ***
-            # verbose=False para não poluir os logs do Cloud Run
-            # logger=progress_logger para ATIVAR o seu callback de progresso
+            print("DEBUG: About to write final video with custom logger...")
+            # Use um nome de arquivo de áudio temporário único para evitar conflitos em execuções paralelas
+            import tempfile
+            import os
+            temp_audiofile_name = os.path.join(tempfile.gettempdir(), f'temp-audio-{os.urandom(8).hex()}.m4a')
+            
             final_video.write_videofile(
                 output_path,
                 fps=fps,
                 codec='libx264',
                 audio_codec='aac',
-                verbose=False, 
-                logger=progress_logger, 
-                temp_audiofile='temp-audio.m4a',
-                remove_temp=True
+                temp_audiofile=temp_audiofile_name,
+                remove_temp=True,
+                logger=progress_logger
             )
+            print("DEBUG: MoviePy's write_videofile function has completed.")
             
-            print(f"DEBUG: MoviePy's write_videofile function has completed.")
+            # VERIFICAÇÃO FINAL E CRÍTICA
+            if not os.path.exists(output_path) or os.path.getsize(output_path) < 1024:
+                raise RuntimeError(f"FATAL ERROR: Video file was not created properly or is empty. Please check logs.")
+
             if progress_callback: progress_callback("Video created successfully!", 100)
-            
-            # Check file size
-            import os
-            if os.path.exists(output_path):
-                file_size = os.path.getsize(output_path)
-                print(f"DEBUG: Output file size: {file_size} bytes")
-                if file_size < 1000:
-                    print(f"DEBUG: WARNING - File size is suspiciously small: {file_size} bytes")
-            else:
-                print(f"DEBUG: ERROR - Output file does not exist: {output_path}")
 
-            # Memory-based processing completed successfully
-            print("DEBUG: Video processing completed using in-memory clips")
-
-            # Clean up
-            if isinstance(audio_clip, AudioFileClip):
-                audio_clip.close()
-            if isinstance(final_audio, AudioFileClip):
-                final_audio.close()
-            final_video.close()
-            for seg in video_segments:
-                seg.close()
-            for cl in final_clips:
-                cl.close()
-            
         except Exception as e:
-            self.logger.error(f"Error creating multi-video: {str(e)}")
+            # Log completo e detalhado para aparecer nos logs do Cloud Run
+            print("--- CRITICAL ERROR IN VIDEO PROCESSING THREAD ---")
+            import traceback
+            traceback.print_exc()
+            print("-------------------------------------------------")
             if progress_callback:
-                progress_callback(f"Error: {str(e)}", 0)
+                # Envia um sinal de erro claro para o frontend
+                progress_callback(f"Error: {str(e)}", -1) 
+            # Re-levanta a exceção para que a thread termine
             raise
+
+        finally:
+            # Bloco de limpeza para liberar memória, não importa o que aconteça
+            print("DEBUG: Final cleanup process started...")
+            for clip in clips_to_close:
+                try:
+                    clip.close()
+                except:
+                    pass # Ignora erros durante o fechamento
+            print("DEBUG: Final cleanup complete.")
     
     def get_supported_image_formats(self) -> List[str]:
         """Get list of supported image formats"""

@@ -252,6 +252,20 @@
                 const progressTextElem = document.getElementById(`${type}ProgressText`);
                 const progressStatusText = document.getElementById(`${type}ProgressStatus`);
                 
+                // Verifica se há erro explícito
+                if (data.error) {
+                    handleTaskEnd(sessionId, type, false, data.error, data);
+                    return;
+                }
+                
+                // Verifica se o progresso é -1 (sinal de erro do backend)
+                if (data.progress === -1) {
+                    progressCircle.style.background = `conic-gradient(#FF3B30 360deg, #f0f0f0 360deg)`;
+                    progressTextElem.textContent = 'Erro';
+                    handleTaskEnd(sessionId, type, false, data.message || 'Processing error occurred', data);
+                    return;
+                }
+                
                 const progress = Math.round(data.progress || 0);
                 
                 // Animação suave do progresso
@@ -304,6 +318,26 @@
             clearInterval(progressInterval);
             const messageArea = document.getElementById(`${type}Message`);
             messageArea.innerHTML = `<div class="${success ? 'success' : 'error'}">${message}</div>`;
+            
+            const progressCircle = document.getElementById(`${type}ProgressCircle`);
+            const progressText = document.getElementById(`${type}ProgressText`);
+            const progressStatus = document.getElementById(`${type}ProgressStatus`);
+            
+            if (success) {
+                progressCircle.style.background = `conic-gradient(#34C759 360deg, #f0f0f0 360deg)`;
+                progressText.textContent = '100%';
+                progressStatus.textContent = 'Completed successfully!';
+            } else {
+                // Exibe barra de progresso vermelha completa para indicar erro
+                progressCircle.style.background = `conic-gradient(#FF3B30 360deg, #f0f0f0 360deg)`;
+                progressText.textContent = 'Error';
+                progressStatus.textContent = message || 'An error occurred';
+                progressStatus.style.color = '#FF3B30'; // Texto vermelho para erro
+                
+                // Log detalhado do erro para debugging
+                console.error(`Task ${type} failed:`, message);
+                console.error('Error data:', data);
+            }
 
             if (type === 'create') {
                 const createBtn = document.getElementById('createBtn');
