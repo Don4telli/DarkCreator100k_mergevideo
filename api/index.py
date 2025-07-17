@@ -13,7 +13,7 @@ from core.video_processor import VideoProcessor
 from core.tiktok_transcription import transcribe_tiktok_video
 
 # --- Configuração ---
-BUCKET_NAME = 'darkcreator-uploads-12345' # <-- VERIFIQUE SE ESTE É O NOME DO SEU BUCKET
+BUCKET_NAME = 'dark_storage' # <-- VERIFIQUE SE ESTE É O NOME DO SEU BUCKET
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
