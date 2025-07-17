@@ -25,57 +25,41 @@ class VideoProcessor:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         
+    # NO ARQUIVO: core/video_processor.py
+
     def group_images_by_prefix(self, image_paths: List[str]) -> Dict[str, List[str]]:
-        """Group images by their filename prefix (A, B, C, D, etc.)"""
+        """Group images by their original filename prefix (A, B, C, D, etc.), ignoring any timestamp prefixes."""
         groups = defaultdict(list)
-        
+
         for image_path in image_paths:
             filename = os.path.basename(image_path)
-            print(f"DEBUG: Processing filename: {filename}")
             
-            # Handle uploaded files with format: image_000_originalname.ext
-            if filename.startswith('image_') and '_' in filename:
-                # Extract the part after the second underscore
-                parts = filename.split('_', 2)
-                if len(parts) >= 3:
-                    original_name = parts[2]
-                    # Extract prefix from original name
-                    match = re.match(r'^([A-Za-z]+)', original_name)
-                    if match:
-                        prefix = match.group(1).upper()
-                        print(f"DEBUG: Extracted prefix '{prefix}' from uploaded file: {filename}")
-                        groups[prefix].append(image_path)
-                        continue
+            # *** CORREÇÃO PRINCIPAL ***
+            # Remove o prefixo de timestamp (ex: "1752771563_") para obter o nome original.
+            original_name = filename.split('_', 1)[-1] if '_' in filename else filename
             
-            # Fallback: Extract prefix from beginning of filename (original logic)
-            match = re.match(r'^([A-Za-z]+)', filename)
+            print(f"DEBUG: Processing original filename: {original_name}")
+
+            match = re.match(r'^([A-Za-z]+)', original_name)
             if match:
                 prefix = match.group(1).upper()
-                print(f"DEBUG: Extracted prefix '{prefix}' from filename: {filename}")
+                print(f"DEBUG: Extracted prefix '{prefix}' from: {original_name}")
                 groups[prefix].append(image_path)
             else:
-                # If no prefix found, put in 'DEFAULT' group
-                print(f"DEBUG: No prefix found, adding to DEFAULT group: {filename}")
+                print(f"DEBUG: No prefix found in '{original_name}', adding to DEFAULT group.")
                 groups['DEFAULT'].append(image_path)
         
         # Sort images within each group numerically
         for prefix in groups:
             def extract_number(path):
                 filename = os.path.basename(path)
-                # Handle uploaded files with format: image_000_originalname.ext
-                if filename.startswith('image_') and '_' in filename:
-                    parts = filename.split('_', 2)
-                    if len(parts) >= 3:
-                        original_name = parts[2]
-                        # Extract number from original name (e.g., A1.png -> 1)
-                        match = re.search(r'([A-Za-z]+)(\d+)', original_name)
-                        if match:
-                            return int(match.group(2))
-                else:
-                    # Extract number from filename (e.g., A1.png -> 1)
-                    match = re.search(r'([A-Za-z]+)(\d+)', filename)
-                    if match:
-                        return int(match.group(2))
+                # Também usa o nome original para extrair o número
+                original_name = filename.split('_', 1)[-1] if '_' in filename else filename
+                
+                # Extrai o número do nome do arquivo (e.g., A1.png -> 1)
+                match = re.search(r'([A-Za-z]+)(\d+)', original_name)
+                if match:
+                    return int(match.group(2))
                 return 0  # Default if no number found
             
             groups[prefix].sort(key=extract_number)
