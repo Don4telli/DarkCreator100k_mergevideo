@@ -224,21 +224,27 @@ class VideoProcessor:
             self.validate_inputs(image_paths, audio_path)
             width, height = self.get_aspect_ratio_dimensions(aspect_ratio)
 
-            # Phase 1: Processing (0% to 20%)
-            if progress_callback: progress_callback("Processing: Grouping images...", 5)
+            # Phase 1: Initial processing (0-10%)
+            if progress_callback: progress_callback("Grouping images...", 2)
             image_groups = self.group_images_by_prefix(image_paths)
             print(f"DEBUG: Found {len(image_groups)} image groups: {list(image_groups.keys())}")
             if not image_groups:
                 raise ValueError("No image groups found.")
 
-            if progress_callback: progress_callback("Processing: Loading audio...", 10)
+            if progress_callback: progress_callback("Loading audio...", 5)
             audio_clip = AudioFileClip(audio_path)
             audio_duration = audio_clip.duration
 
-            if progress_callback: progress_callback("Processing: Creating video segments...", 15)
+            if progress_callback: progress_callback("Preparing segments...", 10)
+
             video_segments = []
             num_groups = len(image_groups)
             sorted_groups = sorted(image_groups.items())
+
+            # Phase 2: Creating segments (10-50%)
+            segment_progress_start = 10
+            segment_progress_total = 40
+            progress_per_group = segment_progress_total / num_groups if num_groups > 0 else 0
 
             for i, (prefix, group_images) in enumerate(sorted_groups):
                 print(f"DEBUG: Processing group {i+1}/{num_groups}: '{prefix}' with {len(group_images)} images")
@@ -246,16 +252,16 @@ class VideoProcessor:
                     self.logger.warning(f"Skipping empty image group: {prefix}")
                     continue
 
-                if progress_callback:
-                    # This phase (segment creation) is from 15% to 20%
-                    progress = 15 + ((i + 1) / num_groups) * 5
-                    progress_callback(f"Processing: Creating segment for '{prefix}' ({i+1}/{num_groups})", progress)
+                def group_progress_callback(message, progress):
+                    if progress_callback:
+                        scaled_progress = segment_progress_start + (i * progress_per_group) + (progress / 100 * progress_per_group)
+                        progress_callback(f"{message} for group {prefix} ({i+1}/{num_groups})", scaled_progress)
 
                 print(f"DEBUG: About to call create_video_from_images for group '{prefix}'")
                 try:
                     group_video = self.create_video_from_images(
                         image_paths=group_images, audio_path=audio_path, output_path=None,
-                        width=width, height=height, fps=fps, progress_callback=None
+                        width=width, height=height, fps=fps, progress_callback=group_progress_callback
                     )
                     print(f"DEBUG: create_video_from_images returned: {type(group_video)} for group '{prefix}'")
                     if group_video and hasattr(group_video, 'duration') and group_video.duration > 0:
@@ -275,10 +281,9 @@ class VideoProcessor:
             if not video_segments:
                 raise ValueError("No valid video segments could be created. Please check image files and logs.")
 
-            if progress_callback: progress_callback("Processando: Combinando segmentos...", 20)
+            # Phase 3: Concatenating clips (50-60%)
+            if progress_callback: progress_callback("Concatenating video segments...", 50)
 
-            print(f"DEBUG: Starting Phase 2 - Video concatenation and writing")
-            # Phase 2: Writing Video (20% to 100%)
             final_clips = []
             print(f"DEBUG: Building final clips list with {len(video_segments)} segments")
             for i, segment in enumerate(video_segments):
@@ -289,6 +294,7 @@ class VideoProcessor:
                     green_clip = self.create_green_screen_clip(green_screen_duration, width, height)
                     final_clips.append(green_clip)
             print(f"DEBUG: Final clips list has {len(final_clips)} clips total")
+
             # Ensure all clips have a numeric duration
             for i, clip in enumerate(final_clips):
                 duration = getattr(clip, 'duration', 0)
@@ -310,8 +316,10 @@ class VideoProcessor:
             print(f"DEBUG: About to concatenate {len(final_clips)} clips")
             final_video = concatenate_videoclips(final_clips, method="compose")
             print(f"DEBUG: Video concatenation completed successfully")
+            if progress_callback: progress_callback("Video segments concatenated.", 60)
 
-            # Create audio track: repeat audio for each group + silence for green screens
+            # Phase 4: Creating audio track (60-70%)
+            if progress_callback: progress_callback("Creating audio track...", 60)
             print(f"DEBUG: Creating audio track for {num_groups} groups")
             from moviepy.editor import concatenate_audioclips
             audio_segments = []
@@ -329,48 +337,45 @@ class VideoProcessor:
             if final_video.duration > final_video.audio.duration:
                 final_video.duration = final_video.audio.duration
             print(f"DEBUG: Final video prepared, duration: {final_video.duration}s")
+            if progress_callback: progress_callback("Audio track created.", 70)
 
-            # Calculate progress weights for writing phase
-            writing_progress_total = 80  # 80% of total progress
+            # Phase 5: Writing final video (70-100%)
+            writing_progress_start = 70
+            writing_progress_total = 30
             progress_per_segment = writing_progress_total / num_groups if num_groups > 0 else 0
 
             def custom_logger(bar_name, current_frame, total_frames):
                 if total_frames > 0:
-                    # This is the progress for the current segment being written
                     segment_progress = (current_frame / total_frames) * 100
-                    # Find which segment we are on by looking at the bar name (e.g., 't:   1/4')
                     try:
                         segment_num_str = re.search(r'(\d+)/\d+', bar_name).group(1)
                         segment_num = int(segment_num_str) - 1
                     except (AttributeError, ValueError):
-                        segment_num = 0 # Default to first segment if parsing fails
+                        segment_num = 0
 
-                    # Calculate overall progress
-                    # Progress of completed segments + progress of current segment
-                    base_progress = 20 + (segment_num * progress_per_segment)
+                    base_progress = writing_progress_start + (segment_num * progress_per_segment)
                     current_segment_contribution = (segment_progress / 100) * progress_per_segment
                     total_progress = base_progress + current_segment_contribution
 
                     if progress_callback:
-                        progress_callback(f"Writing video file... ({segment_num+1}/{num_groups})", total_progress)
+                        progress_callback(f"Writing segment {segment_num+1}/{num_groups} ({int(segment_progress)}%)", total_progress)
 
             class ProgressLogger:
                 def __init__(self, callback):
                     self.callback = callback
                 def __call__(self, *args, **kwargs):
-                    # MoviePy's logger can be called with messages or progress data.
-                    # We only care about the progress data, which comes as positional args.
-                    if len(args) == 3: # bar_name, current_frame, total_frames
+                    if len(args) == 3:
                         self.callback(args[0], args[1], args[2])
 
                 def iter_bar(self, **kwargs):
-                    # This is needed for audio processing. Just pass through the iterator.
                     iterable = kwargs.get('iterable', [])
                     for i in iterable:
                         yield i
 
                 def bars_end(self):
-                    pass # No action needed at the end of all bars
+                    pass
+
+            progress_logger = ProgressLogger(custom_logger)
 
             print(f"DEBUG: About to write final video to: {output_path}")
             final_video.write_videofile(
@@ -378,14 +383,15 @@ class VideoProcessor:
                 fps=fps,
                 codec='libx264',
                 audio_codec='aac',
-                verbose=False,  # Use False para evitar logs duplicados no console
-                logger=progress_logger, # <--- CORREÇÃO APLICADA
+                verbose=False,
+                logger=progress_logger,
                 temp_audiofile='temp-audio.m4a',
                 remove_temp=True
             )
             print(f"DEBUG: Video file writing completed successfully")
+            if progress_callback: progress_callback("Video created successfully!", 100)
             
-            # Check file size immediately after writing
+            # Check file size
             import os
             if os.path.exists(output_path):
                 file_size = os.path.getsize(output_path)
@@ -395,7 +401,7 @@ class VideoProcessor:
             else:
                 print(f"DEBUG: ERROR - Output file does not exist: {output_path}")
 
-            # Clean up temporary files
+            # Clean up
             if isinstance(audio_clip, AudioFileClip):
                 audio_clip.close()
             if isinstance(final_audio, AudioFileClip):
