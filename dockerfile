@@ -1,17 +1,21 @@
-# Use a imagem Python
-FROM python:3.10
+
+# Use imagem Python oficial
+FROM python:3.10-slim
+
+# Instala dependências do sistema
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Define diretório de trabalho
 WORKDIR /app
 
-# Copia todos os arquivos
+# Copia os arquivos do projeto
 COPY . .
 
-# Instala as dependências
+# Instala dependências Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expõe a porta usada pelo Flask
+# Expõe a porta que o Flask usará
 EXPOSE 8080
 
-# Comando para rodar o app
+# Define o comando para iniciar a aplicação
 CMD ["python", "app.py"]
