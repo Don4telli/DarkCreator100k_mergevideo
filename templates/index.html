@@ -236,45 +236,89 @@
 
         // --- FUNÇÕES COMUNS DE UI ---
         function startProgressCheck(sessionId, type) {
-            if (progressInterval) clearInterval(progressInterval);
-            progressInterval = setInterval(() => checkProgress(sessionId, type), 2500);
+            console.log(`Iniciando verificação de progresso para sessionId: ${sessionId}, type: ${type}`);
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                console.log('Limpando interval anterior');
+            }
+            
+            // Inicializa o progresso
+            if (!window.lastProgress) window.lastProgress = {};
+            window.lastProgress[type] = 0;
+            
+            // Primeira verificação imediata
+            checkProgress(sessionId, type);
+            
+            // Configura verificação periódica
+            progressInterval = setInterval(() => {
+                console.log(`Verificando progresso para ${sessionId}`);
+                checkProgress(sessionId, type);
+            }, 1500); // Reduzido para 1.5s para melhor responsividade
         }
 
         async function checkProgress(sessionId, type) {
             try {
+                console.log(`Fazendo requisição de progresso: /progress?session_id=${sessionId}&type=${type}`);
                 const response = await fetch(`/progress?session_id=${sessionId}&type=${type}`);
-                if (!response.ok) throw new Error('Falha na resposta do servidor de progresso.');
+                
+                if (!response.ok) {
+                    console.error(`Erro na resposta: ${response.status} ${response.statusText}`);
+                    if (response.status === 404) {
+                        throw new Error('Sessão não encontrada. Verifique se o processamento foi iniciado corretamente.');
+                    }
+                    throw new Error('Falha na resposta do servidor de progresso.');
+                }
 
                 const data = await response.json();
+                console.log(`Dados de progresso recebidos:`, data);
+
+                // Verifica se há erro na resposta
+                if (data.error) {
+                    console.error('Erro nos dados de progresso:', data.error);
+                    handleTaskEnd(sessionId, type, false, data.error, data);
+                    return;
+                }
 
                 const progressCircle = document.getElementById(`${type}ProgressCircle`);
                 const progressTextElem = document.getElementById(`${type}ProgressText`);
                 const progressStatusText = document.getElementById(`${type}ProgressStatus`);
 
-                // Garantir que o progresso nunca volte
+                // Garantir que o progresso nunca volte e seja suave
                 if (!window.lastProgress) window.lastProgress = {};
                 if (!window.lastProgress[type]) window.lastProgress[type] = 0;
 
                 const rawProgress = Math.round(data.progress || 0);
-                const progress = Math.max(window.lastProgress[type], rawProgress);
+                
+                // Progresso suave - não permite saltos grandes
+                let progress = rawProgress;
+                if (rawProgress > window.lastProgress[type] + 20 && window.lastProgress[type] < 80) {
+                    // Limita saltos grandes no progresso (exceto no final)
+                    progress = window.lastProgress[type] + 5;
+                } else {
+                    progress = Math.max(window.lastProgress[type], rawProgress);
+                }
+                
                 window.lastProgress[type] = progress;
+                console.log(`Progresso atualizado: ${window.lastProgress[type]} -> ${progress}`);
 
                 // Atualiza visual do progresso
                 progressCircle.style.background = `conic-gradient(#00ffe0 ${progress * 3.6}deg, #ccc 0deg)`;
                 progressTextElem.textContent = `${progress}%`;
-                progressStatusText.textContent = data.message;
+                progressStatusText.textContent = data.message || 'Processando...';
 
                 // Verifica erros ou conclusão
                 if (data.message && (data.message.toLowerCase().includes('erro') || data.message.toLowerCase().includes('falha'))) {
+                    console.log('Erro detectado na mensagem:', data.message);
                     handleTaskEnd(sessionId, type, false, data.message, data);
-                } else if (progress >= 100) {
-                    handleTaskEnd(sessionId, type, true, data.message, data);
-                } else {
-                    // Continua verificando a cada 2.5s
-                    setTimeout(() => checkProgress(sessionId, type), 2500);
+                } else if (progress >= 100 || (data.message && data.message.toLowerCase().includes('finalizado'))) {
+                    console.log('Processamento concluído');
+                    handleTaskEnd(sessionId, type, true, data.message || 'Processamento concluído!', data);
                 }
+                // Se não terminou, o interval continuará verificando automaticamente
+                
             } catch (err) {
-                handleTaskEnd(null, type, false, 'Falha ao obter progresso.', {});
+                console.error('Erro ao verificar progresso:', err);
+                handleTaskEnd(null, type, false, err.message || 'Falha ao obter progresso.', {});
             }
         }
 
