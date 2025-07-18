@@ -93,19 +93,54 @@ def create_video():
         progress_data[key] = {'progress': 0, 'message': 'Iniciando criação do vídeo...'}
         
         def progress_callback(message, progress=None):
-            if progress is not None: 
-                progress_data[key]['progress'] = progress
-                # Também salva no disco para progresso granular
-                try:
-                    import json
-                    progress_file = f"/tmp/progress_{session_id}.json"
-                    with open(progress_file, 'w') as f:
-                        json.dump({'progress': progress, 'message': message}, f)
-                    app.logger.info(f"Progresso salvo no disco: {progress}% - {message}")
-                except Exception as e:
-                    app.logger.error(f"Erro ao salvar progresso no disco: {e}")
-            progress_data[key]['message'] = message
-            app.logger.info(f"Progresso atualizado: {progress}% - {message}")
+            """Callback para atualizar o progresso"""
+            try:
+                # Ensure progress is within valid range
+                if progress is not None:
+                    progress = max(0, min(100, progress))
+                    progress_data[key]['progress'] = progress
+                
+                progress_data[key]['message'] = message
+                progress_data[key]['timestamp'] = time.time()
+                
+                # Also store with alternative key for compatibility
+                progress_data[f"progress_{session_id}"] = progress_data[key].copy()
+                
+                # Save granular progress to disk
+                import json
+                progress_file = f"/tmp/progress_{session_id}.json"
+                session_file = f"/tmp/session_{session_id}.json"
+                
+                # Save progress file
+                progress_info = {
+                    'progress': progress_data[key]['progress'],
+                    'message': message,
+                    'timestamp': time.time(),
+                    'session_id': session_id
+                }
+                
+                with open(progress_file, 'w') as f:
+                    json.dump(progress_info, f)
+                
+                # Save session file with all data
+                session_data_to_save = progress_data[key].copy()
+                
+                # Include additional session info if available
+                session_data_to_save.update({
+                    'temp_dir': session_data_to_save.get('temp_dir'),
+                    'output_path': session_data_to_save.get('output_path'),
+                    'created_at': session_data_to_save.get('created_at', time.time())
+                })
+                
+                with open(session_file, 'w') as f:
+                    json.dump(session_data_to_save, f)
+                
+                app.logger.info(f"Progresso atualizado: {progress}% - {message} (Session: {session_id})")
+                
+            except Exception as e:
+                app.logger.error(f"Error updating progress for session {session_id}: {e}")
+                import traceback
+                app.logger.error(traceback.format_exc())
         
         def create_video_thread():
             try:
@@ -188,42 +223,69 @@ def transcribe_tiktok():
 @app.route('/progress')
 def get_progress():
     session_id = request.args.get('session_id')
-    task_type = request.args.get('type', 'create')
+    progress_type = request.args.get('type', 'create')
+    
     if not session_id:
-        return jsonify({'error': 'session_id é necessário'}), 400
+        return jsonify({'error': 'session_id é obrigatório'}), 400
     
-    app.logger.info(f"Solicitação de progresso para session_id: {session_id}, type: {task_type}")
+    app.logger.info(f"Solicitação de progresso para session_id: {session_id}, type: {progress_type}")
     
-    # First try to read from disk-based progress (granular progress)
+    # Try to read from granular progress file first
     import json
     progress_file = f"/tmp/progress_{session_id}.json"
-    if os.path.exists(progress_file):
-        try:
-            with open(progress_file, 'r') as f:
-                disk_progress = json.load(f)
-                app.logger.info(f"Progresso do disco: {disk_progress}")
-                return jsonify(disk_progress)
-        except Exception as e:
-            app.logger.error(f"Error reading progress file: {e}")
+    try:
+        with open(progress_file, 'r') as f:
+            file_data = json.load(f)
+            app.logger.info(f"Progresso carregado do arquivo granular: {file_data.get('progress', 0)}% - {file_data.get('message', '')}")
+            return jsonify({
+                'progress': file_data.get('progress', 0),
+                'message': file_data.get('message', 'Processando...'),
+                'timestamp': file_data.get('timestamp', time.time())
+            })
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        app.logger.debug(f"Arquivo de progresso granular não disponível: {e}")
     
-    # Fallback to in-memory progress data - try both key formats
-    key_standard = f"{session_id}_{task_type}"
-    key_alt = f"{session_id}_create" if task_type == 'create' else f"{session_id}_{task_type}"
+    # Fallback: try to read from session file
+    session_file = f"/tmp/session_{session_id}.json"
+    try:
+        with open(session_file, 'r') as f:
+            session_data = json.load(f)
+            app.logger.info(f"Progresso carregado do arquivo de sessão: {session_data.get('progress', 0)}% - {session_data.get('message', '')}")
+            return jsonify({
+                'progress': session_data.get('progress', 0),
+                'message': session_data.get('message', 'Processando...'),
+                'timestamp': session_data.get('timestamp', time.time())
+            })
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        app.logger.debug(f"Arquivo de sessão não disponível: {e}")
     
-    app.logger.info(f"Tentando chaves: {key_standard}, {key_alt}")
-    app.logger.info(f"Chaves disponíveis: {list(progress_data.keys())}")
+    # Fallback to in-memory data
+    keys_to_try = [f"{session_id}_{progress_type}", f"progress_{session_id}", session_id]
     
-    if key_standard in progress_data:
-        result = progress_data[key_standard]
-        app.logger.info(f"Progresso encontrado com chave padrão: {result}")
-        return jsonify(result)
-    elif key_alt in progress_data:
-        result = progress_data[key_alt]
-        app.logger.info(f"Progresso encontrado com chave alternativa: {result}")
-        return jsonify(result)
-    else:
-        app.logger.warning(f"Nenhum progresso encontrado para session_id: {session_id}")
-        return jsonify({'error': 'Sessão não encontrada'}), 404
+    app.logger.debug(f"Tentando chaves na memória: {keys_to_try}")
+    app.logger.debug(f"Chaves disponíveis na memória: {list(progress_data.keys())}")
+    
+    for key in keys_to_try:
+        if key in progress_data:
+            data = progress_data[key]
+            app.logger.info(f"Progresso encontrado na memória com chave {key}: {data.get('progress', 0)}% - {data.get('message', '')}")
+            return jsonify({
+                'progress': data.get('progress', 0),
+                'message': data.get('message', 'Processando...'),
+                'timestamp': data.get('timestamp', time.time())
+            })
+    
+    # If no progress found, check if this might be a new session that hasn't started yet
+    app.logger.warning(f"Nenhum progresso encontrado para session_id: {session_id}")
+    app.logger.info(f"Isso pode indicar uma mudança de instância no Cloud Run ou sessão ainda não iniciada")
+    
+    # Return a "waiting" state instead of error for better UX
+    return jsonify({
+        'progress': 0,
+        'message': 'Aguardando início do processamento...',
+        'timestamp': time.time(),
+        'waiting': True
+    }), 200
 
 @app.route('/download/<session_id>', methods=['GET'])
 def download_video(session_id):
@@ -236,12 +298,26 @@ def download_video(session_id):
         
         # Verifica se temos dados de progresso para esta sessão
         session_data = None
+        
+        # First try in-memory data
         if key_create in progress_data:
             session_data = progress_data[key_create]
             app.logger.info(f"Dados encontrados com chave create: {key_create}")
         elif key_progress in progress_data:
             session_data = progress_data[key_progress]
             app.logger.info(f"Dados encontrados com chave progress: {key_progress}")
+        
+        # If not found in memory, try disk-based session file
+        if not session_data:
+            import json
+            session_file = f"/tmp/session_{session_id}.json"
+            if os.path.exists(session_file):
+                try:
+                    with open(session_file, 'r') as f:
+                        session_data = json.load(f)
+                        app.logger.info(f"Dados da sessão carregados do disco: {session_data}")
+                except Exception as e:
+                    app.logger.error(f"Error reading session file for download: {e}")
         
         if not session_data:
             app.logger.error(f"Dados de progresso não encontrados para session_id: {session_id}")

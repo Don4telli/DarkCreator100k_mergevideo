@@ -246,14 +246,33 @@
             if (!window.lastProgress) window.lastProgress = {};
             window.lastProgress[type] = 0;
             
-            // Primeira verificação imediata
-            checkProgress(sessionId, type);
+            // Reset retry and error counters
+            if (!window.progressRetryCount) window.progressRetryCount = {};
+            if (!window.progressErrorCount) window.progressErrorCount = {};
+            window.progressRetryCount[type] = 0;
+            window.progressErrorCount[type] = 0;
             
-            // Configura verificação periódica
-            progressInterval = setInterval(() => {
-                console.log(`Verificando progresso para ${sessionId}`);
+            // Initialize UI with 0% progress
+            const progressCircle = document.getElementById(`${type}ProgressCircle`);
+            const progressTextElem = document.getElementById(`${type}ProgressText`);
+            const progressStatusText = document.getElementById(`${type}ProgressStatus`);
+            
+            if (progressCircle && progressTextElem && progressStatusText) {
+                progressCircle.style.background = `conic-gradient(#00ffe0 0deg, #ccc 0deg)`;
+                progressTextElem.textContent = '0%';
+                progressStatusText.textContent = 'Iniciando processamento...';
+            }
+            
+            // Wait a moment before starting to check progress to allow backend to initialize
+            setTimeout(() => {
                 checkProgress(sessionId, type);
-            }, 1500); // Reduzido para 1.5s para melhor responsividade
+                
+                // Configura verificação periódica
+                progressInterval = setInterval(() => {
+                    console.log(`Verificando progresso para ${sessionId}`);
+                    checkProgress(sessionId, type);
+                }, 1500); // Reduzido para 1.5s para melhor responsividade
+            }, 1000);
         }
 
         async function checkProgress(sessionId, type) {
@@ -264,13 +283,42 @@
                 if (!response.ok) {
                     console.error(`Erro na resposta: ${response.status} ${response.statusText}`);
                     if (response.status === 404) {
-                        throw new Error('Sessão não encontrada. Verifique se o processamento foi iniciado corretamente.');
+                        // Don't immediately fail - retry a few times for Cloud Run instance changes
+                        if (!window.progressRetryCount) window.progressRetryCount = {};
+                        if (!window.progressRetryCount[type]) window.progressRetryCount[type] = 0;
+                        window.progressRetryCount[type]++;
+                        
+                        if (window.progressRetryCount[type] > 5) {
+                            throw new Error('Sessão não encontrada. Verifique se o processamento foi iniciado corretamente.');
+                        } else {
+                            console.log(`Retry ${window.progressRetryCount[type]}/5 - Session might be on different instance`);
+                            return; // Continue checking
+                        }
                     }
                     throw new Error('Falha na resposta do servidor de progresso.');
                 }
 
                 const data = await response.json();
                 console.log(`Dados de progresso recebidos:`, data);
+
+                // Reset retry count on successful response
+                if (window.progressRetryCount && window.progressRetryCount[type]) {
+                    window.progressRetryCount[type] = 0;
+                }
+
+                // Reset error count on successful response
+                if (window.progressErrorCount && window.progressErrorCount[type]) {
+                    window.progressErrorCount[type] = 0;
+                }
+
+                // Handle waiting state (session not started yet or instance change)
+                if (data.waiting) {
+                    console.log('Session in waiting state - may be starting or on different instance');
+                    // Don't update progress if we already have a higher value
+                    if (window.lastProgress[type] > 0) {
+                        return; // Keep current progress
+                    }
+                }
 
                 // Verifica se há erro na resposta
                 if (data.error) {
@@ -298,6 +346,11 @@
                     progress = Math.max(window.lastProgress[type], rawProgress);
                 }
                 
+                // Don't allow progress to go backwards unless it's a significant drop (instance change)
+                if (progress < window.lastProgress[type] && (window.lastProgress[type] - progress) < 10) {
+                    progress = window.lastProgress[type];
+                }
+                
                 window.lastProgress[type] = progress;
                 console.log(`Progresso atualizado: ${window.lastProgress[type]} -> ${progress}`);
 
@@ -318,7 +371,17 @@
                 
             } catch (err) {
                 console.error('Erro ao verificar progresso:', err);
-                handleTaskEnd(null, type, false, err.message || 'Falha ao obter progresso.', {});
+                
+                // Handle network errors more gracefully for Cloud Run
+                if (!window.progressErrorCount) window.progressErrorCount = {};
+                if (!window.progressErrorCount[type]) window.progressErrorCount[type] = 0;
+                window.progressErrorCount[type]++;
+                
+                if (window.progressErrorCount[type] > 10) {
+                    handleTaskEnd(null, type, false, err.message || 'Falha ao obter progresso.', {});
+                } else {
+                    console.log(`Network error ${window.progressErrorCount[type]}/10 - retrying...`);
+                }
             }
         }
 
