@@ -369,26 +369,48 @@ class VideoProcessor:
             if session_id: update_progress(session_id, 70, "🚀 Preparando para renderização final...")
             if progress_callback: progress_callback("🚀 Preparando para renderização final...", 70)
 
+            # --- CORREÇÃO AQUI ---
             # Logger para capturar o progresso do MoviePy na escrita final
             def final_write_logger(bar_name, current_frame, total_frames):
                 if total_frames > 0:
                     progress = (current_frame / total_frames)
-                    # Mapeia o progresso para a faixa de 70%-100%
-                    # 70-85% para áudio, 85-100% para vídeo
                     if 'audio' in bar_name.lower():
-                        total_progress = 70 + progress * 15  # Mapeia 0-1 para 70-85
+                        total_progress = 70 + progress * 15 # Mapeia 0-1 para 70-85%
                         message = f"🎶 Escrevendo áudio final... ({int(progress*100)}%)"
-                    else:  # Assume que o resto é escrita de vídeo
-                        total_progress = 85 + progress * 15  # Mapeia 0-1 para 85-100
+                    else:
+                        total_progress = 85 + progress * 15 # Mapeia 0-1 para 85-100%
                         message = f"🖼️ Montando frames do vídeo... ({int(progress*100)}%)"
                     
                     if session_id: update_progress(session_id, total_progress, message)
 
+            # ESTA CLASSE FOI CORRIGIDA PARA SER MAIS ROBUSTA
             class ProgressLogger:
-                def __init__(self, callback): self.callback = callback
-                def __call__(self, bar_name, current_frame, total_frames): self.callback(bar_name, current_frame, total_frames)
-                def iter_bar(self, **kwargs): return kwargs.get('iterable', [])
-                def bars_end(self): pass
+                def __init__(self, callback):
+                    self.callback = callback
+
+                def __call__(self, *args, **kwargs):
+                    """
+                    Função flexível que aceita qualquer argumento do moviepy.
+                    Ela só chama o nosso callback se receber os 3 argumentos
+                    posicionais que indicam o progresso da barra.
+                    """
+                    # moviepy envia (bar_name, current_frame, total_frames) como args posicionais
+                    if len(args) == 3:
+                        bar_name, current_frame, total_frames = args
+                        # Garante que estamos lidando com uma barra de progresso real
+                        if isinstance(current_frame, (int, float)) and isinstance(total_frames, (int, float)):
+                            self.callback(bar_name, current_frame, total_frames)
+                    # Outras chamadas, como as com 'message', serão ignoradas sem causar erro.
+
+                def iter_bar(self, **kwargs):
+                    # Esta parte é necessária para a compatibilidade com a interface do logger
+                    iterable = kwargs.get('iterable', [])
+                    for i in iterable:
+                        yield i
+
+                def bars_end(self):
+                    pass
+            # --- FIM DA CORREÇÃO ---
 
             progress_logger_instance = ProgressLogger(final_write_logger)
 
