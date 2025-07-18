@@ -20,6 +20,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core.video_processor import VideoProcessor
 from core.tiktok_transcription import transcribe_tiktok_video
 
+import psutil, logging
+
+
+
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 
@@ -33,6 +37,15 @@ def index():
     return render_template('local_index.html')
 
 @app.route('/upload', methods=['POST'])
+
+def log_memory(stage=""):
+    mem = psutil.virtual_memory()
+    logging.info(f"[{stage}] Memory used: {mem.used / (1024 ** 2):.2f} MB | Available: {mem.available / (1024 ** 2):.2f} MB")
+
+log_memory("Before processing")
+# process video...
+log_memory("After processing")
+
 def upload_files():
     try:
         # Create temporary directory for this session
