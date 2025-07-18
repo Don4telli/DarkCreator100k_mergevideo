@@ -36,8 +36,6 @@ video_processor = VideoProcessor()
 def index():
     return render_template('local_index.html')
 
-@app.route('/upload', methods=['POST'])
-
 def log_memory(stage=""):
     mem = psutil.virtual_memory()
     logging.info(f"[{stage}] Memory used: {mem.used / (1024 ** 2):.2f} MB | Available: {mem.available / (1024 ** 2):.2f} MB")
@@ -46,6 +44,7 @@ log_memory("Before processing")
 # process video...
 log_memory("After processing")
 
+@app.route('/upload', methods=['POST'])
 def upload_files():
     try:
         # Create temporary directory for this session
@@ -165,7 +164,8 @@ def create_video():
                         aspect_ratio=aspect_ratio,
                         fps=fps,
                         green_screen_duration=green_screen_duration,
-                        progress_callback=progress_callback
+                        progress_callback=progress_callback,
+                        session_id=session_id
                     )
                 else:
                     # Get dimensions from aspect ratio for single video mode
@@ -177,7 +177,8 @@ def create_video():
                         width=width,
                         height=height,
                         fps=fps,
-                        progress_callback=progress_callback
+                        progress_callback=progress_callback,
+                        session_id=session_id
                     )
                 progress_data[key]['progress'] = 100
                 progress_data[key]['message'] = 'Video creation completed!'
@@ -203,8 +204,20 @@ def get_progress():
     if not session_id:
         return jsonify({'error': 'Session ID required'}), 400
 
+    # First try to read from disk-based progress (granular progress)
+    import json
+    import os
+    progress_file = f"/tmp/progress_{session_id}.json"
+    if os.path.exists(progress_file):
+        try:
+            with open(progress_file, 'r') as f:
+                return jsonify(json.load(f))
+        except Exception as e:
+            app.logger.error(f"Error reading progress file: {e}")
+    
+    # Fallback to in-memory progress data
     key = f"{session_id}_{task_type}"
-    return jsonify(progress_data.get(key, {'progress': 0, 'message': 'Waiting...'}))
+    return jsonify(progress_data.get(key, {'progress': 0, 'message': 'Aguardando início...'}))
 
 @app.route('/download/<session_id>')
 def download_video(session_id):

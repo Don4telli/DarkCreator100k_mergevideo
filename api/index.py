@@ -101,7 +101,7 @@ def create_video():
                 video_processor.create_multi_video_with_separators(
                     image_paths=image_paths, audio_path=audio_path, output_path=output_path,
                     aspect_ratio=aspect_ratio, fps=fps, green_screen_duration=green_screen_duration,
-                    progress_callback=progress_callback
+                    progress_callback=progress_callback, session_id=session_id
                 )
                 progress_data[key]['output_name'] = secure_filename(output_filename) # Salva o nome para o download
             except Exception as e:
@@ -158,11 +158,23 @@ def transcribe_tiktok():
 @app.route('/progress')
 def get_progress():
     session_id = request.args.get('session_id')
-    task_type = request.args.get('type')
-    if not session_id or not task_type:
-        return jsonify({'error': 'session_id e type são necessários'}), 400
+    task_type = request.args.get('type', 'create')
+    if not session_id:
+        return jsonify({'error': 'session_id é necessário'}), 400
+    
+    # First try to read from disk-based progress (granular progress)
+    import json
+    progress_file = f"/tmp/progress_{session_id}.json"
+    if os.path.exists(progress_file):
+        try:
+            with open(progress_file, 'r') as f:
+                return jsonify(json.load(f))
+        except Exception as e:
+            app.logger.error(f"Error reading progress file: {e}")
+    
+    # Fallback to in-memory progress data
     key = f"{session_id}_{task_type}"
-    return jsonify(progress_data.get(key, {'progress': 0, 'message': 'Aguardando...'}))
+    return jsonify(progress_data.get(key, {'progress': 0, 'message': 'Aguardando início...'}))
 
 @app.route('/download/<session_id>')
 def download_video(session_id):

@@ -2,6 +2,7 @@ import os
 import logging
 import traceback
 import tempfile
+import json
 from pathlib import Path
 from typing import List, Dict, Tuple
 from moviepy.editor import AudioFileClip, ImageClip, concatenate_videoclips, ColorClip, VideoFileClip
@@ -11,6 +12,19 @@ from collections import defaultdict
 import numpy as np
 import cv2
 import re
+
+# Configure logging for Cloud Run visibility
+logging.basicConfig(level=logging.INFO)
+
+def update_progress(session_id, progress, message):
+    """Save progress to disk for real-time tracking"""
+    path = f"/tmp/progress_{session_id}.json"
+    try:
+        with open(path, "w") as f:
+            json.dump({"progress": progress, "message": message}, f)
+        logging.info(f"Progress {progress}%: {message}")
+    except Exception as e:
+        logging.error(f"Failed to update progress: {e}")
 
 class VideoProcessor:
     """Handles video creation from images and audio"""
@@ -126,15 +140,24 @@ class VideoProcessor:
         
         return True
     
-    def create_video_from_images(self, image_paths: List[str], audio_path: str, output_path: str, width=1920, height=1080, fps=30, progress_callback=None):
+    def create_video_from_images(self, image_paths: List[str], audio_path: str, output_path: str, width=1920, height=1080, fps=30, progress_callback=None, session_id=None):
         """Create a video from a list of images with timing based on audio length. Returns a VideoClip if output_path is None."""
         try:
+            if session_id:
+                update_progress(session_id, 5, "🔍 Iniciando processamento...")
+            
             self.validate_inputs(image_paths, audio_path)
+            
+            if session_id:
+                update_progress(session_id, 10, "🖼️ Carregando imagens...")
             
             if progress_callback:
                 progress_callback("Loading audio file...", 10)
             
             # Get audio duration
+            if session_id:
+                update_progress(session_id, 15, "🎵 Carregando áudio...")
+            
             audio_clip = AudioFileClip(audio_path)
             audio_duration = audio_clip.duration
             
@@ -146,6 +169,9 @@ class VideoProcessor:
             self.logger.info(f"Total images: {total_images}")
             self.logger.info(f"Seconds per image: {seconds_per_image}s")
             
+            if session_id:
+                update_progress(session_id, 20, "🧪 Redimensionando imagens...")
+            
             if progress_callback:
                 progress_callback(f"Processing {total_images} images...", 30)
             
@@ -155,6 +181,10 @@ class VideoProcessor:
                 try:
                     clip = ImageClip(image_path).set_duration(seconds_per_image).resize((width, height))
                     image_clips.append(clip)
+                    
+                    if session_id:
+                        progress = 30 + (i / total_images) * 40
+                        update_progress(session_id, progress, f"🎬 Processando imagem {i+1}/{total_images}")
                     
                     if progress_callback:
                         progress = 30 + (i / total_images) * 40
@@ -167,6 +197,9 @@ class VideoProcessor:
             if not image_clips:
                 raise ValueError("No valid images could be processed")
             
+            if session_id:
+                update_progress(session_id, 70, "⚙️ Preparando vídeo...")
+            
             if progress_callback:
                 progress_callback("Combining images into video...", 70)
             
@@ -176,6 +209,9 @@ class VideoProcessor:
             # Add audio
             final_clip = final_clip.set_audio(audio_clip)
             
+            if session_id:
+                update_progress(session_id, 80, "🎬 Renderizando vídeo...")
+            
             if progress_callback:
                 progress_callback("Rendering final video...", 80)
             
@@ -184,6 +220,9 @@ class VideoProcessor:
                 output_dir = Path(output_path).parent
                 output_dir.mkdir(parents=True, exist_ok=True)
                 # Write final video to file
+                if session_id:
+                    update_progress(session_id, 90, "📦 Salvando vídeo final...")
+                
                 final_clip.write_videofile(
                     output_path,
                     fps=fps,
@@ -192,6 +231,10 @@ class VideoProcessor:
                     verbose=False,
                     logger='bar'
                 )
+                
+                if session_id:
+                    update_progress(session_id, 100, "✅ Finalizado!")
+                
                 if progress_callback:
                     progress_callback("Video created successfully!", 100)
                 # Close all clips to free memory
@@ -213,7 +256,7 @@ class VideoProcessor:
             raise
     
     def create_multi_video_with_separators(self, image_paths: List[str], audio_path: str, output_path: str, 
-                                          aspect_ratio='9:16', fps=30, green_screen_duration=2.0, progress_callback=None) -> None:
+                                          aspect_ratio='9:16', fps=30, green_screen_duration=2.0, progress_callback=None, session_id=None) -> None:
         """Create a video from grouped images, where each group video has the full audio length."""
         try:
             fps = int(fps)
@@ -225,16 +268,24 @@ class VideoProcessor:
             width, height = self.get_aspect_ratio_dimensions(aspect_ratio)
 
             # Phase 1: Initial processing (0-10%)
+            if session_id:
+                update_progress(session_id, 2, "🔍 Agrupando imagens...")
             if progress_callback: progress_callback("Grouping images...", 2)
+            
             image_groups = self.group_images_by_prefix(image_paths)
             print(f"DEBUG: Found {len(image_groups)} image groups: {list(image_groups.keys())}")
             if not image_groups:
                 raise ValueError("No image groups found.")
 
+            if session_id:
+                update_progress(session_id, 5, "🎵 Carregando áudio...")
             if progress_callback: progress_callback("Loading audio...", 5)
+            
             audio_clip = AudioFileClip(audio_path)
             audio_duration = audio_clip.duration
 
+            if session_id:
+                update_progress(session_id, 10, "⚙️ Preparando segmentos...")
             if progress_callback: progress_callback("Preparing segments...", 10)
 
             video_segments = []
@@ -255,6 +306,9 @@ class VideoProcessor:
                     continue
 
                 def group_progress_callback(message, progress):
+                    if session_id:
+                        scaled_progress = segment_progress_start + (i * progress_per_group) + (progress / 100 * progress_per_group)
+                        update_progress(session_id, scaled_progress, f"🎬 {message} para grupo {prefix} ({i+1}/{num_groups})")
                     if progress_callback:
                         scaled_progress = segment_progress_start + (i * progress_per_group) + (progress / 100 * progress_per_group)
                         progress_callback(f"{message} for group {prefix} ({i+1}/{num_groups})", scaled_progress)
@@ -272,7 +326,8 @@ class VideoProcessor:
                             width=width,
                             height=height,
                             fps=fps,
-                            progress_callback=group_progress_callback
+                            progress_callback=group_progress_callback,
+                            session_id=session_id
                         )
                         group_video = VideoFileClip(temp_path)
                     except Exception as inner_e:
@@ -297,6 +352,8 @@ class VideoProcessor:
                 raise ValueError("No valid video segments could be created. Please check image files and logs.")
 
             # Phase 3: Concatenating clips (50-60%)
+            if session_id:
+                update_progress(session_id, 50, "🔗 Concatenando segmentos de vídeo...")
             if progress_callback: progress_callback("Concatenating video segments...", 50)
 
             final_clips = []
@@ -331,9 +388,13 @@ class VideoProcessor:
             print(f"DEBUG: About to concatenate {len(final_clips)} clips")
             final_video = concatenate_videoclips(final_clips, method="compose")
             print(f"DEBUG: Video concatenation completed successfully")
+            if session_id:
+                update_progress(session_id, 60, "✅ Segmentos de vídeo concatenados.")
             if progress_callback: progress_callback("Video segments concatenated.", 60)
 
             # Phase 4: Creating audio track (60-70%)
+            if session_id:
+                update_progress(session_id, 65, "🎵 Criando trilha de áudio...")
             if progress_callback: progress_callback("Creating audio track...", 60)
             print(f"DEBUG: Creating audio track for {num_groups} groups")
             from moviepy.editor import concatenate_audioclips
@@ -352,6 +413,8 @@ class VideoProcessor:
             if final_video.duration > final_video.audio.duration:
                 final_video.duration = final_video.audio.duration
             print(f"DEBUG: Final video prepared, duration: {final_video.duration}s")
+            if session_id:
+                update_progress(session_id, 70, "✅ Trilha de áudio criada.")
             if progress_callback: progress_callback("Audio track created.", 70)
 
             # Phase 5: Writing final video (70-100%)
@@ -372,6 +435,8 @@ class VideoProcessor:
                     current_segment_contribution = (segment_progress / 100) * progress_per_segment
                     total_progress = base_progress + current_segment_contribution
 
+                    if session_id:
+                        update_progress(session_id, total_progress, f"📦 Escrevendo segmento {segment_num+1}/{num_groups} ({int(segment_progress)}%)")
                     if progress_callback:
                         progress_callback(f"Writing segment {segment_num+1}/{num_groups} ({int(segment_progress)}%)", total_progress)
 
@@ -404,6 +469,8 @@ class VideoProcessor:
                 remove_temp=True
             )
             print(f"DEBUG: Video file writing completed successfully")
+            if session_id:
+                update_progress(session_id, 100, "🎉 Vídeo criado com sucesso!")
             if progress_callback: progress_callback("Video created successfully!", 100)
             
             # Check file size
