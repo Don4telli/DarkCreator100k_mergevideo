@@ -229,7 +229,8 @@
                 window.lastProgress[type] = progress;
 
                 // Atualiza visual do progresso
-                progressCircle.style.background = `conic-gradient(#00ffe0 ${progress * 3.6}deg, #ccc 0deg)`;
+                // CORREÇÃO: O segundo ângulo do gradiente deve corresponder ao primeiro
+                progressCircle.style.background = `conic-gradient(#00ffe0 ${progress * 3.6}deg, #f0f0f0 ${progress * 3.6}deg)`;
                 progressTextElem.textContent = `${progress}%`;
                 progressStatusText.textContent = data.message;
 

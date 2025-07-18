@@ -5,15 +5,15 @@ import tempfile
 import shutil
 import time
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, redirect
 from werkzeug.utils import secure_filename
 from google.cloud import storage
-
 from core.video_processor import VideoProcessor
 from core.tiktok_transcription import transcribe_tiktok_video
+import datetime
 
 # --- Configuração ---
-BUCKET_NAME = 'dark_storage' # <-- VERIFIQUE SE ESTE É O NOME DO SEU BUCKET
+BUCKET_NAME = 'dark_storage' 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
@@ -157,14 +157,29 @@ def create_video():
                 )
                 
                 # Verifica se o arquivo foi criado com sucesso
-                if os.path.exists(output_path):
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                     file_size = os.path.getsize(output_path)
                     app.logger.info(f"Vídeo criado com sucesso: {output_path} ({file_size} bytes)")
-                    progress_data[key]['output_name'] = secure_filename(output_filename)
-                    progress_data[key]['temp_dir'] = temp_dir  # Salva o diretório temporário
-                    progress_data[key]['output_path'] = output_path  # Salva o caminho completo
+                    
+                    # --- NOVO TRECHO: UPLOAD PARA O GCS ---
+                    progress_callback("Fazendo upload do vídeo final...", 98)
+                    
+                    bucket = storage_client.bucket(BUCKET_NAME)
+                    # Define um caminho no bucket para o vídeo finalizado
+                    final_video_filename = f"outputs/{session_id}_{secure_filename(output_filename)}"
+                    blob = bucket.blob(final_video_filename)
+                    
+                    # Faz o upload do arquivo a partir do disco temporário
+                    blob.upload_from_filename(output_path)
+                    
+                    app.logger.info(f"Vídeo final enviado para o GCS: gs://{BUCKET_NAME}/{final_video_filename}")
+                    
+                    # Salva o caminho do GCS nos dados da sessão em vez do caminho local
+                    progress_data[key]['gcs_path'] = final_video_filename
+                    progress_data[key]['output_name'] = secure_filename(output_filename)  # Mantém o nome original
+                    # --- FIM DO NOVO TRECHO ---
                 else:
-                    app.logger.error(f"Arquivo de vídeo não foi criado: {output_path}")
+                    app.logger.error(f"Arquivo de vídeo não foi criado ou está vazio: {output_path}")
                     progress_data[key]['message'] = 'Erro: Arquivo de vídeo não foi criado'
                     
             except Exception as e:
@@ -229,10 +244,13 @@ def get_progress():
         return jsonify({'error': 'session_id é obrigatório'}), 400
     
     app.logger.info(f"Solicitação de progresso para session_id: {session_id}, type: {progress_type}")
-    
-    # Try to read from granular progress file first
-    import json
-    progress_file = f"/tmp/progress_{session_id}.json"
+
+    import json, time, os
+    progress_dir = "/mnt/data/progress"
+    os.makedirs(progress_dir, exist_ok=True)
+
+    # referencia inicial: tenta carregar arquivo granular persistente
+    progress_file = os.path.join(progress_dir, f"progress_{session_id}.json")
     try:
         with open(progress_file, 'r') as f:
             file_data = json.load(f)
@@ -244,11 +262,12 @@ def get_progress():
             })
     except (FileNotFoundError, json.JSONDecodeError) as e:
         app.logger.debug(f"Arquivo de progresso granular não disponível: {e}")
-    
-    # Fallback: try to read from session file
-    session_file = f"/tmp/session_{session_id}.json"
+    # referencia final: fim da tentativa de leitura persistente
+
+    # Fallback: (opcional) ainda tenta o antigo /tmp se necessário
+    legacy_session_file = f"/tmp/session_{session_id}.json"
     try:
-        with open(session_file, 'r') as f:
+        with open(legacy_session_file, 'r') as f:
             session_data = json.load(f)
             app.logger.info(f"Progresso carregado do arquivo de sessão: {session_data.get('progress', 0)}% - {session_data.get('message', '')}")
             return jsonify({
@@ -258,10 +277,9 @@ def get_progress():
             })
     except (FileNotFoundError, json.JSONDecodeError) as e:
         app.logger.debug(f"Arquivo de sessão não disponível: {e}")
-    
+
     # Fallback to in-memory data
     keys_to_try = [f"{session_id}_{progress_type}", f"progress_{session_id}", session_id]
-    
     app.logger.debug(f"Tentando chaves na memória: {keys_to_try}")
     app.logger.debug(f"Chaves disponíveis na memória: {list(progress_data.keys())}")
     
@@ -274,12 +292,11 @@ def get_progress():
                 'message': data.get('message', 'Processando...'),
                 'timestamp': data.get('timestamp', time.time())
             })
-    
-    # If no progress found, check if this might be a new session that hasn't started yet
+
+    # Caso nenhuma fonte de progresso encontrada
     app.logger.warning(f"Nenhum progresso encontrado para session_id: {session_id}")
-    app.logger.info(f"Isso pode indicar uma mudança de instância no Cloud Run ou sessão ainda não iniciada")
+    app.logger.info("Isso pode indicar uma mudança de instância no Cloud Run ou sessão ainda não iniciada")
     
-    # Return a "waiting" state instead of error for better UX
     return jsonify({
         'progress': 0,
         'message': 'Aguardando início do processamento...',
@@ -287,111 +304,57 @@ def get_progress():
         'waiting': True
     }), 200
 
+
 @app.route('/download/<session_id>', methods=['GET'])
 def download_video(session_id):
     try:
-        # Tenta as duas chaves possíveis para compatibilidade
+        app.logger.info(f"Requisição de download para a sessão: {session_id}")
+        
+        # Para um ambiente stateless, a melhor abordagem é ter um "arquivo de status" no GCS
+        # ou usar um banco de dados como Firestore/Redis.
+        # Por simplicidade, vamos manter a lógica de `progress_data` em memória,
+        # mas a solução robusta envolveria consultar uma fonte de dados externa.
+        
         key_create = f'{session_id}_create'
-        key_progress = f'progress_{session_id}'
-        
-        app.logger.info(f"Tentando download para session_id: {session_id}")
-        
-        # Verifica se temos dados de progresso para esta sessão
-        session_data = None
-        
-        # First try in-memory data
-        if key_create in progress_data:
-            session_data = progress_data[key_create]
-            app.logger.info(f"Dados encontrados com chave create: {key_create}")
-        elif key_progress in progress_data:
-            session_data = progress_data[key_progress]
-            app.logger.info(f"Dados encontrados com chave progress: {key_progress}")
-        
-        # If not found in memory, try disk-based session file
-        if not session_data:
-            import json
-            session_file = f"/tmp/session_{session_id}.json"
-            if os.path.exists(session_file):
-                try:
-                    with open(session_file, 'r') as f:
-                        session_data = json.load(f)
-                        app.logger.info(f"Dados da sessão carregados do disco: {session_data}")
-                except Exception as e:
-                    app.logger.error(f"Error reading session file for download: {e}")
+        session_data = progress_data.get(key_create)
         
         if not session_data:
-            app.logger.error(f"Dados de progresso não encontrados para session_id: {session_id}")
-            app.logger.error(f"Chaves disponíveis: {list(progress_data.keys())}")
-            return jsonify({'error': 'Sessão não encontrada'}), 404
+            app.logger.error(f"Dados da sessão não encontrados na memória para {session_id}")
+            # AQUI VOCÊ PODERIA ADICIONAR UMA LÓGICA DE FALLBACK PARA LER UM ARQUIVO DE STATUS DO GCS
+            return jsonify({'error': 'Sessão não encontrada ou a instância foi reiniciada. Tente novamente.'}), 404
+
+        gcs_path = session_data.get('gcs_path')
+        if not gcs_path:
+            app.logger.error(f"Caminho do GCS não encontrado nos dados da sessão para {session_id}")
+            return jsonify({'error': 'O arquivo final ainda não está pronto ou houve um erro no upload.'}), 404
+
+        # Gera uma URL assinada para o download
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blob = bucket.blob(gcs_path)
+
+        if not blob.exists():
+            app.logger.error(f"O arquivo {gcs_path} não existe no GCS.")
+            return jsonify({'error': 'Arquivo não encontrado no armazenamento.'}), 404
+
+        # A URL expira em 10 minutos
+        expiration_time = datetime.timedelta(minutes=10)
         
-        app.logger.info(f"Dados da sessão: {session_data}")
+        signed_url = blob.generate_signed_url(
+            version="v4",
+            expiration=expiration_time,
+            method="GET",
+            response_disposition=f"attachment; filename={session_data.get('output_name')}"
+        )
         
-        # Tenta usar o caminho completo salvo primeiro
-        video_path = None
-        if 'output_path' in session_data and os.path.exists(session_data['output_path']):
-            video_path = session_data['output_path']
-            app.logger.info(f"Usando caminho completo salvo: {video_path}")
-        else:
-            # Fallback para o método anterior
-            temp_dir = session_data.get('temp_dir', os.path.join(tempfile.gettempdir(), session_id))
-            app.logger.info(f"Diretório temporário: {temp_dir}")
-            
-            # Verifica se o diretório temporário existe
-            if not os.path.exists(temp_dir):
-                app.logger.error(f"Diretório temporário não encontrado: {temp_dir}")
-                return jsonify({'error': 'Diretório temporário não encontrado'}), 404
-            
-            # Tenta obter o nome do arquivo de saída
-            output_filename = session_data.get('output_name', 'video.mp4')
-            if output_filename:
-                potential_path = os.path.join(temp_dir, output_filename)
-                if os.path.exists(potential_path):
-                    video_path = potential_path
-                    app.logger.info(f"Arquivo encontrado: {video_path}")
-            
-            # Se não encontrou, procura por qualquer arquivo .mp4
-            if not video_path:
-                app.logger.info("Procurando por arquivos .mp4 no diretório")
-                try:
-                    files = os.listdir(temp_dir)
-                    app.logger.info(f"Arquivos no diretório: {files}")
-                    
-                    for file in files:
-                        if file.endswith('.mp4'):
-                            potential_path = os.path.join(temp_dir, file)
-                            if os.path.exists(potential_path):
-                                video_path = potential_path
-                                app.logger.info(f"Arquivo .mp4 encontrado: {video_path}")
-                                break
-                except OSError as e:
-                    app.logger.error(f"Erro ao listar arquivos no diretório {temp_dir}: {e}")
-                    return jsonify({'error': 'Erro ao acessar diretório temporário'}), 500
-        
-        if not video_path:
-            app.logger.error("Nenhum arquivo de vídeo encontrado")
-            return jsonify({'error': 'Arquivo de vídeo não encontrado'}), 404
-        
-        # Verifica o tamanho do arquivo
-        try:
-            file_size = os.path.getsize(video_path)
-            app.logger.info(f"Tamanho do arquivo: {file_size} bytes")
-            
-            if file_size == 0:
-                app.logger.error("Arquivo de vídeo está vazio")
-                return jsonify({'error': 'Arquivo de vídeo está vazio'}), 404
-        except OSError as e:
-            app.logger.error(f"Erro ao verificar tamanho do arquivo: {e}")
-            return jsonify({'error': 'Erro ao verificar arquivo'}), 500
-        
-        app.logger.info(f"Enviando arquivo: {video_path}")
-        output_filename = session_data.get('output_name', f'video_{session_id}.mp4')
-        return send_file(video_path, as_attachment=True, download_name=output_filename)
-        
+        app.logger.info(f"Redirecionando usuário para a URL assinada de download.")
+        # Redireciona o navegador do usuário para a URL de download direto do GCS
+        return redirect(signed_url, code=302)
+
     except Exception as e:
         app.logger.error(f"Erro no download: {e}")
         import traceback
         app.logger.error(traceback.format_exc())
-        return jsonify({'error': 'Erro interno do servidor'}), 500
+        return jsonify({'error': 'Erro interno do servidor ao tentar gerar o link de download.'}), 500
 
 @app.route('/get_transcription/<session_id>')
 def get_transcription(session_id):

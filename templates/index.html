@@ -258,7 +258,7 @@
             const progressStatusText = document.getElementById(`${type}ProgressStatus`);
             
             if (progressCircle && progressTextElem && progressStatusText) {
-                progressCircle.style.background = `conic-gradient(#00ffe0 0deg, #ccc 0deg)`;
+                progressCircle.style.background = `conic-gradient(#00ffe0 0deg, #f0f0f0 0deg)`;
                 progressTextElem.textContent = '0%';
                 progressStatusText.textContent = 'Iniciando processamento...';
             }
@@ -355,7 +355,8 @@
                 console.log(`Progresso atualizado: ${window.lastProgress[type]} -> ${progress}`);
 
                 // Atualiza visual do progresso
-                progressCircle.style.background = `conic-gradient(#00ffe0 ${progress * 3.6}deg, #ccc 0deg)`;
+                // CORREÇÃO: O segundo ângulo do gradiente deve corresponder ao primeiro
+                progressCircle.style.background = `conic-gradient(#00ffe0 ${progress * 3.6}deg, #f0f0f0 ${progress * 3.6}deg)`;
                 progressTextElem.textContent = `${progress}%`;
                 progressStatusText.textContent = data.message || 'Processando...';
 

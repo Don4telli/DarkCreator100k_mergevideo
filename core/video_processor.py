@@ -141,118 +141,66 @@ class VideoProcessor:
         return True
     
     def create_video_from_images(self, image_paths: List[str], audio_path: str, output_path: str, width=1920, height=1080, fps=30, progress_callback=None, session_id=None):
-        """Create a video from a list of images with timing based on audio length. Returns a VideoClip if output_path is None."""
+        """
+        CORRIGIDO: Cria um vídeo a partir de imagens. Agora usa exclusivamente o
+        progress_callback para que o progresso possa ser dimensionado pelo chamador.
+        """
         try:
-            if session_id:
-                update_progress(session_id, 5, "🔍 Iniciando processamento...")
+            if progress_callback: progress_callback("🔍 Iniciando processamento do segmento...", 5)
             
             self.validate_inputs(image_paths, audio_path)
             
-            if session_id:
-                update_progress(session_id, 10, "🖼️ Carregando imagens...")
-            
-            if progress_callback:
-                progress_callback("Loading audio file...", 10)
-            
-            # Get audio duration
-            if session_id:
-                update_progress(session_id, 15, "🎵 Carregando áudio...")
+            if progress_callback: progress_callback("🎵 Carregando áudio para o segmento...", 15)
             
             audio_clip = AudioFileClip(audio_path)
             audio_duration = audio_clip.duration
             
-            # Calculate duration for each image
             total_images = len(image_paths)
+            if total_images == 0: raise ValueError("Nenhuma imagem para processar.")
             seconds_per_image = audio_duration / total_images
             
-            self.logger.info(f"Audio duration: {audio_duration}s")
-            self.logger.info(f"Total images: {total_images}")
-            self.logger.info(f"Seconds per image: {seconds_per_image}s")
+            self.logger.info(f"Duração do áudio: {audio_duration}s, Imagens: {total_images}, Segundos/imagem: {seconds_per_image}s")
             
-            if session_id:
-                update_progress(session_id, 20, "🧪 Redimensionando imagens...")
-            
-            if progress_callback:
-                progress_callback(f"Processing {total_images} images...", 30)
-            
-            # Create video clips from images
+            # O progresso do processamento de imagens ocorrerá entre 20% e 70%
+            base_progress = 20
+            progress_range = 50
             image_clips = []
             for i, image_path in enumerate(image_paths):
                 try:
                     clip = ImageClip(image_path).set_duration(seconds_per_image).resize((width, height))
                     image_clips.append(clip)
-                    
-                    if session_id:
-                        progress = 30 + (i / total_images) * 40
-                        update_progress(session_id, progress, f"🎬 Processando imagem {i+1}/{total_images}")
-                    
                     if progress_callback:
-                        progress = 30 + (i / total_images) * 40
-                        progress_callback(f"Processing image {i+1}/{total_images}", progress)
-                        
+                        progress = base_progress + ((i + 1) / total_images) * progress_range
+                        progress_callback(f"🎬 Processando imagem {i+1}/{total_images}", progress)
                 except Exception as e:
-                    self.logger.warning(f"Error processing image {image_path}: {str(e)}")
+                    self.logger.warning(f"Erro ao processar imagem {image_path}: {str(e)}")
                     continue
             
-            if not image_clips:
-                raise ValueError("No valid images could be processed")
+            if not image_clips: raise ValueError("Nenhuma imagem válida pôde ser processada")
             
-            if session_id:
-                update_progress(session_id, 70, "⚙️ Preparando vídeo...")
-            
-            if progress_callback:
-                progress_callback("Combining images into video...", 70)
-            
-            # Concatenate all clips
+            if progress_callback: progress_callback("⚙️ Combinando imagens do segmento...", 75)
             final_clip = concatenate_videoclips(image_clips)
-            
-            # Add audio
             final_clip = final_clip.set_audio(audio_clip)
             
-            if session_id:
-                update_progress(session_id, 80, "🎬 Renderizando vídeo...")
-            
-            if progress_callback:
-                progress_callback("Rendering final video...", 80)
-            
             if output_path:
-                # Ensure output directory exists
-                output_dir = Path(output_path).parent
-                output_dir.mkdir(parents=True, exist_ok=True)
-                # Write final video to file
-                if session_id:
-                    update_progress(session_id, 90, "📦 Salvando vídeo final...")
-                
+                if progress_callback: progress_callback("📦 Salvando segmento...", 90)
                 final_clip.write_videofile(
-                    output_path,
-                    fps=fps,
-                    codec='libx264',
-                    audio_codec='aac',
-                    verbose=False,
-                    logger='bar'
+                    output_path, fps=fps, codec='libx264', audio_codec='aac',
+                    verbose=False, logger=None
                 )
+                if progress_callback: progress_callback("✅ Segmento Finalizado!", 100)
                 
-                if session_id:
-                    update_progress(session_id, 100, "✅ Finalizado!")
-                
-                if progress_callback:
-                    progress_callback("Video created successfully!", 100)
-                # Close all clips to free memory
                 final_clip.close()
                 audio_clip.close()
-                for clip in image_clips:
-                    clip.close()
-                self.logger.info(f"Video created successfully: {output_path}")
+                for clip in image_clips: clip.close()
+                self.logger.info(f"Segmento criado com sucesso: {output_path}")
                 return None
             else:
-                # Return the clip without writing to file
-                # Note: Don't close clips here as they're still needed
                 return final_clip
             
         except Exception as e:
-            self.logger.error(f"Error creating video: {str(e)}")
-            if progress_callback:
-                progress_callback(f"Error: {str(e)}", 0)
+            self.logger.error(f"Erro ao criar segmento de vídeo: {str(e)}")
+            if progress_callback: progress_callback(f"Error: {str(e)}", 0)
             raise
     
     def create_multi_video_with_separators(self, image_paths: List[str], audio_path: str, output_path: str, 
@@ -417,72 +365,55 @@ class VideoProcessor:
                 update_progress(session_id, 70, "✅ Trilha de áudio criada.")
             if progress_callback: progress_callback("Audio track created.", 70)
 
-            # Phase 5: Writing final video (70-100%)
-            writing_progress_start = 70
-            writing_progress_total = 30
-            progress_per_segment = writing_progress_total / num_groups if num_groups > 0 else 0
+            # Fase 5: Escrevendo vídeo final com progresso detalhado (70-100%)
+            if session_id: update_progress(session_id, 70, "🚀 Preparando para renderização final...")
+            if progress_callback: progress_callback("🚀 Preparando para renderização final...", 70)
 
-            def custom_logger(bar_name, current_frame, total_frames):
+            # Logger para capturar o progresso do MoviePy na escrita final
+            def final_write_logger(bar_name, current_frame, total_frames):
                 if total_frames > 0:
-                    segment_progress = (current_frame / total_frames) * 100
-                    try:
-                        segment_num_str = re.search(r'(\d+)/\d+', bar_name).group(1)
-                        segment_num = int(segment_num_str) - 1
-                    except (AttributeError, ValueError):
-                        segment_num = 0
-
-                    base_progress = writing_progress_start + (segment_num * progress_per_segment)
-                    current_segment_contribution = (segment_progress / 100) * progress_per_segment
-                    total_progress = base_progress + current_segment_contribution
-
-                    if session_id:
-                        update_progress(session_id, total_progress, f"📦 Escrevendo segmento {segment_num+1}/{num_groups} ({int(segment_progress)}%)")
-                    if progress_callback:
-                        progress_callback(f"Writing segment {segment_num+1}/{num_groups} ({int(segment_progress)}%)", total_progress)
+                    progress = (current_frame / total_frames)
+                    # Mapeia o progresso para a faixa de 70%-100%
+                    # 70-85% para áudio, 85-100% para vídeo
+                    if 'audio' in bar_name.lower():
+                        total_progress = 70 + progress * 15  # Mapeia 0-1 para 70-85
+                        message = f"🎶 Escrevendo áudio final... ({int(progress*100)}%)"
+                    else:  # Assume que o resto é escrita de vídeo
+                        total_progress = 85 + progress * 15  # Mapeia 0-1 para 85-100
+                        message = f"🖼️ Montando frames do vídeo... ({int(progress*100)}%)"
+                    
+                    if session_id: update_progress(session_id, total_progress, message)
 
             class ProgressLogger:
-                def __init__(self, callback):
-                    self.callback = callback
-                def __call__(self, *args, **kwargs):
-                    if len(args) == 3:
-                        self.callback(args[0], args[1], args[2])
+                def __init__(self, callback): self.callback = callback
+                def __call__(self, bar_name, current_frame, total_frames): self.callback(bar_name, current_frame, total_frames)
+                def iter_bar(self, **kwargs): return kwargs.get('iterable', [])
+                def bars_end(self): pass
 
-                def iter_bar(self, **kwargs):
-                    iterable = kwargs.get('iterable', [])
-                    for i in iterable:
-                        yield i
+            progress_logger_instance = ProgressLogger(final_write_logger)
 
-                def bars_end(self):
-                    pass
+            # Ensure output directory exists
+            output_dir = Path(output_path).parent
+            output_dir.mkdir(parents=True, exist_ok=True)
 
-            progress_logger = ProgressLogger(custom_logger)
-
-            print(f"DEBUG: About to write final video to: {output_path}")
+            print(f"DEBUG: Prestes a escrever o vídeo final em: {output_path}")
             final_video.write_videofile(
                 output_path,
                 fps=fps,
                 codec='libx264',
                 audio_codec='aac',
-                verbose=True,
-                logger=None,
+                verbose=False,  # Deve ser False para usar logger customizado
+                logger=progress_logger_instance,  # Usa nosso logger de progresso
                 temp_audiofile='temp-audio.m4a',
                 remove_temp=True
             )
-            print(f"DEBUG: Video file writing completed successfully")
-            if session_id:
-                update_progress(session_id, 100, "🎉 Vídeo criado com sucesso!")
-            if progress_callback: progress_callback("Video created successfully!", 100)
-            
-            # Check file size
-            import os
-            if os.path.exists(output_path):
-                file_size = os.path.getsize(output_path)
-                print(f"DEBUG: Output file size: {file_size} bytes")
-                if file_size < 1000:
-                    print(f"DEBUG: WARNING - File size is suspiciously small: {file_size} bytes")
-            else:
-                print(f"DEBUG: ERROR - Output file does not exist: {output_path}")
+            print(f"DEBUG: Escrita do arquivo de vídeo concluída com sucesso")
 
+            if session_id:
+                update_progress(session_id, 100, "✅ Vídeo criado com sucesso!")
+            if progress_callback: progress_callback("Video created successfully!", 100)
+
+            # Clean up temporary files
             for temp_file in temp_files:
                 try:
                     os.unlink(temp_file)
