@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DarkCreator 💎 100k</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0a0a0a;
+            font-family: 'Inter', sans-serif;
+            color: #ff4d00;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #0f0f0f;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 0 30px rgba(255, 77, 0, 0.3);
+            width: 400px;
+        }
+        h1 {
+            text-align: center;
+            font-weight: 700;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-top: 20px;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #ff4d00;
+            border-radius: 8px;
+            color: #ff4d00;
+            font-size: 14px;
+            outline: none;
+        }
+        input::file-selector-button {
+            background: #1a1a1a;
+            border: none;
+            color: #ff4d00;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        input:focus, select:focus {
+            box-shadow: 0 0 8px #ff4d00;
+        }
+        button {
+            margin-top: 30px;
+            width: 100%;
+            padding: 12px;
+            background-color: #ff4d00;
+            border: none;
+            border-radius: 8px;
+            color: #0a0a0a;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            box-shadow: 0 0 15px #ff4d00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DarkCreator 💎 100k</h1>
+        <form id="videoForm">
+            <label>Select Images:</label>
+            <input type="file" name="images" multiple>
+
+            <label>Select Audio (optional):</label>
+            <input type="file" name="audio">
+
+            <label>Output Filename:</label>
+            <input type="text" name="filename" value="my_video.mp4">
+
+            <label>Aspect Ratio:</label>
+            <select name="aspect_ratio">
+                <option value="9:16">9:16 (Portrait)</option>
+                <option value="16:9">16:9 (Landscape)</option>
+            </select>
+
+            <label>FPS:</label>
+            <input type="number" name="fps" value="30">
+
+            <label>Green Screen Duration (s):</label>
+            <input type="text" name="green_duration" value="5.0">
+
+            <button type="submit">Create Video</button>
+        </form>
+    </div>
+</body>
+</html>

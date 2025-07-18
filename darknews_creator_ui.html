@@ -1,0 +1,151 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DarkNews Creator 💎</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0a0a0a;
+            font-family: 'Inter', sans-serif;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: center;
+            background: #111;
+            padding: 14px;
+            box-shadow: 0 0 20px rgba(255, 77, 0, 0.2);
+        }
+
+        .nav button {
+            background: transparent;
+            border: 1px solid #ff4d00;
+            color: #ff4d00;
+            padding: 8px 14px;
+            margin: 0 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .nav button:hover {
+            background-color: #ff4d00;
+            color: #0a0a0a;
+            box-shadow: 0 0 10px #ff4d00;
+        }
+
+        .container {
+            background: #101010;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 0 30px rgba(255, 77, 0, 0.2);
+            width: 420px;
+            margin: 40px auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-weight: 700;
+            font-size: 24px;
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+
+        h1 .glow {
+            display: inline-block;
+            color: #ffffff;
+            text-shadow: 0 0 6px #ff6a00, 0 0 12px #ff6a00;
+        }
+
+        label {
+            display: block;
+            margin-top: 20px;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #b0b0b0;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            box-shadow: 0 0 6px #ff4d00;
+            border-color: #ff4d00;
+        }
+
+        input::file-selector-button {
+            background: #1a1a1a;
+            border: none;
+            color: #ff4d00;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button.submit {
+            margin-top: 30px;
+            width: 100%;
+            padding: 12px;
+            background-color: #ff4d00;
+            border: none;
+            border-radius: 8px;
+            color: #0a0a0a;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button.submit:hover {
+            box-shadow: 0 0 15px #ff4d00;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="nav">
+        <button onclick="window.open('https://chat.openai.com')">ChatGPT</button>
+        <button onclick="window.open('https://www.tiktok.com')">TikTok</button>
+        <button onclick="window.open('https://fishaudio.com')">Fish Audio</button>
+        <button onclick="window.open('https://whisper.openai.com')">Transcrição</button>
+    </div>
+
+    <div class="container">
+        <h1>DarkNews Creator <span class="glow">💎</span></h1>
+        <form id="videoForm">
+            <label>Select Images:</label>
+            <input type="file" name="images" multiple>
+
+            <label>Select Audio (optional):</label>
+            <input type="file" name="audio">
+
+            <label>Output Filename:</label>
+            <input type="text" name="filename" value="my_video.mp4">
+
+            <label>Aspect Ratio:</label>
+            <select name="aspect_ratio">
+                <option value="9:16">9:16 (Portrait)</option>
+                <option value="16:9">16:9 (Landscape)</option>
+            </select>
+
+            <label>Green Screen Duration (s):</label>
+            <input type="text" name="green_duration" value="5.0">
+
+            <button class="submit" type="submit">Create Video</button>
+        </form>
+    </div>
+
+</body>
+</html>
