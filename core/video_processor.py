@@ -381,6 +381,8 @@ class VideoProcessor:
             # Sample frames at regular intervals (every 2 seconds for faster processing)
             sample_interval = 2.0
             total_samples = int(duration / sample_interval)
+            if total_samples == 0:
+                total_samples = 1  # Avoid division by zero for short videos
             
             for i, t in enumerate(np.arange(0, duration, sample_interval)):
                 if progress_callback:
