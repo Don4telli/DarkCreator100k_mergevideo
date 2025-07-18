@@ -144,17 +144,25 @@ def create_video():
         
         def create_video_thread():
             try:
+                progress_callback('Sessão iniciada...', 1)
                 app.logger.info(f"Iniciando criação de vídeo - Session ID: {session_id}")
                 app.logger.info(f"Diretório temporário: {temp_dir}")
                 app.logger.info(f"Arquivo de saída: {output_path}")
                 app.logger.info(f"Imagens: {len(image_paths)} arquivos")
                 app.logger.info(f"Áudio: {audio_path}")
                 
+                progress_callback('Inicializando variáveis...', 5)
+                progress_callback('Baixando arquivos do bucket...', 10)
+                
+                progress_callback('Convertendo imagens para vídeo base...', 25)
+                
                 video_processor.create_multi_video_with_separators(
                     image_paths=image_paths, audio_path=audio_path, output_path=output_path,
                     aspect_ratio=aspect_ratio, fps=fps, green_screen_duration=green_screen_duration,
                     progress_callback=progress_callback, session_id=session_id
                 )
+                
+                progress_callback('Salvando arquivo final...', 90)
                 
                 # Verifica se o arquivo foi criado com sucesso
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
@@ -177,6 +185,8 @@ def create_video():
                     # Salva o caminho do GCS nos dados da sessão em vez do caminho local
                     progress_data[key]['gcs_path'] = final_video_filename
                     progress_data[key]['output_name'] = secure_filename(output_filename)  # Mantém o nome original
+                    
+                    progress_callback('🎉 Finalizado! Baixe seu vídeo.', 100)
                     # --- FIM DO NOVO TRECHO ---
                 else:
                     app.logger.error(f"Arquivo de vídeo não foi criado ou está vazio: {output_path}")

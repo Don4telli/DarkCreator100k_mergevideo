@@ -161,6 +161,17 @@
                 }
                 await Promise.all(uploadPromises);
 
+                // 3.1. Atualiza progresso após upload dos arquivos
+                const progressCircle = document.getElementById('createProgressCircle');
+                const progressTextElem = document.getElementById('createProgressText');
+                const progressStatusText = document.getElementById('createProgressStatus');
+                
+                if (progressCircle && progressTextElem && progressStatusText) {
+                    progressTextElem.textContent = '50%';
+                    progressStatusText.textContent = 'Arquivos enviados. Preparando processamento...';
+                    progressCircle.style.background = `conic-gradient(#00ffe0 180deg, #f0f0f0 180deg)`;
+                }
+
                 // 4. Chama o backend para criar o vídeo, passando os caminhos GCS
                 btn.textContent = 'Iniciando processamento...';
 
@@ -263,7 +274,7 @@
                 progressStatusText.textContent = 'Iniciando processamento...';
             }
             
-            // Wait a moment before starting to check progress to allow backend to initialize
+            // Wait longer before starting to check progress to allow backend to initialize properly
             setTimeout(() => {
                 checkProgress(sessionId, type);
                 
@@ -272,7 +283,7 @@
                     console.log(`Verificando progresso para ${sessionId}`);
                     checkProgress(sessionId, type);
                 }, 1500); // Reduzido para 1.5s para melhor responsividade
-            }, 1000);
+            }, 2000); // Aumentado para 2s para dar mais tempo ao backend
         }
 
         async function checkProgress(sessionId, type) {
