@@ -98,17 +98,36 @@ def create_video():
         
         def create_video_thread():
             try:
+                app.logger.info(f"Iniciando criação de vídeo - Session ID: {session_id}")
+                app.logger.info(f"Diretório temporário: {temp_dir}")
+                app.logger.info(f"Arquivo de saída: {output_path}")
+                app.logger.info(f"Imagens: {len(image_paths)} arquivos")
+                app.logger.info(f"Áudio: {audio_path}")
+                
                 video_processor.create_multi_video_with_separators(
                     image_paths=image_paths, audio_path=audio_path, output_path=output_path,
                     aspect_ratio=aspect_ratio, fps=fps, green_screen_duration=green_screen_duration,
                     progress_callback=progress_callback, session_id=session_id
                 )
-                progress_data[key]['output_name'] = secure_filename(output_filename) # Salva o nome para o download
+                
+                # Verifica se o arquivo foi criado com sucesso
+                if os.path.exists(output_path):
+                    file_size = os.path.getsize(output_path)
+                    app.logger.info(f"Vídeo criado com sucesso: {output_path} ({file_size} bytes)")
+                    progress_data[key]['output_name'] = secure_filename(output_filename)
+                    progress_data[key]['temp_dir'] = temp_dir  # Salva o diretório temporário
+                    progress_data[key]['output_path'] = output_path  # Salva o caminho completo
+                else:
+                    app.logger.error(f"Arquivo de vídeo não foi criado: {output_path}")
+                    progress_data[key]['message'] = 'Erro: Arquivo de vídeo não foi criado'
+                    
             except Exception as e:
                 import traceback
                 error_message = f'Erro na thread: {e}\n{traceback.format_exc()}'
                 progress_data[key]['message'] = error_message
                 app.logger.error(error_message)
+                app.logger.error(f"Diretório temporário no erro: {temp_dir}")
+                app.logger.error(f"Arquivos no diretório: {os.listdir(temp_dir) if os.path.exists(temp_dir) else 'Diretório não existe'}")
 
         thread = threading.Thread(target=create_video_thread)
         thread.start()
@@ -176,28 +195,87 @@ def get_progress():
     key = f"{session_id}_{task_type}"
     return jsonify(progress_data.get(key, {'progress': 0, 'message': 'Aguardando início...'}))
 
-@app.route('/download/<session_id>')
+@app.route('/download/<session_id>', methods=['GET'])
 def download_video(session_id):
     try:
-        temp_dir = os.path.join(tempfile.gettempdir(), session_id)
+        key = f'progress_{session_id}'
         
-        # Pega o nome do arquivo que foi salvo no progresso
-        progress_key = f"{session_id}_create"
-        output_filename = progress_data.get(progress_key, {}).get('output_name', 'video.mp4')
+        app.logger.info(f"Tentando download para session_id: {session_id}")
         
-        output_path = os.path.join(temp_dir, output_filename)
+        # Verifica se temos dados de progresso para esta sessão
+        if key not in progress_data:
+            app.logger.error(f"Dados de progresso não encontrados para session_id: {session_id}")
+            return jsonify({'error': 'Sessão não encontrada'}), 404
         
-        if not os.path.exists(output_path):
-            # Tenta encontrar qualquer .mp4 como fallback
-            mp4_files = [f for f in os.listdir(temp_dir) if f.endswith('.mp4')]
-            if not mp4_files:
-                return "Arquivo de vídeo não encontrado.", 404
-            output_path = os.path.join(temp_dir, mp4_files[0])
+        session_data = progress_data[key]
+        app.logger.info(f"Dados da sessão: {session_data}")
+        
+        # Tenta usar o caminho completo salvo primeiro
+        video_path = None
+        if 'output_path' in session_data and os.path.exists(session_data['output_path']):
+            video_path = session_data['output_path']
+            app.logger.info(f"Usando caminho completo salvo: {video_path}")
+        else:
+            # Fallback para o método anterior
+            temp_dir = session_data.get('temp_dir', os.path.join(tempfile.gettempdir(), session_id))
+            app.logger.info(f"Diretório temporário: {temp_dir}")
             
-        return send_file(output_path, as_attachment=True)
+            # Verifica se o diretório temporário existe
+            if not os.path.exists(temp_dir):
+                app.logger.error(f"Diretório temporário não encontrado: {temp_dir}")
+                return jsonify({'error': 'Diretório temporário não encontrado'}), 404
+            
+            # Tenta obter o nome do arquivo de saída
+            output_filename = session_data.get('output_name', 'video.mp4')
+            if output_filename:
+                potential_path = os.path.join(temp_dir, output_filename)
+                if os.path.exists(potential_path):
+                    video_path = potential_path
+                    app.logger.info(f"Arquivo encontrado: {video_path}")
+            
+            # Se não encontrou, procura por qualquer arquivo .mp4
+            if not video_path:
+                app.logger.info("Procurando por arquivos .mp4 no diretório")
+                try:
+                    files = os.listdir(temp_dir)
+                    app.logger.info(f"Arquivos no diretório: {files}")
+                    
+                    for file in files:
+                        if file.endswith('.mp4'):
+                            potential_path = os.path.join(temp_dir, file)
+                            if os.path.exists(potential_path):
+                                video_path = potential_path
+                                app.logger.info(f"Arquivo .mp4 encontrado: {video_path}")
+                                break
+                except OSError as e:
+                    app.logger.error(f"Erro ao listar arquivos no diretório {temp_dir}: {e}")
+                    return jsonify({'error': 'Erro ao acessar diretório temporário'}), 500
+        
+        if not video_path:
+            app.logger.error("Nenhum arquivo de vídeo encontrado")
+            return jsonify({'error': 'Arquivo de vídeo não encontrado'}), 404
+        
+        # Verifica o tamanho do arquivo
+        try:
+            file_size = os.path.getsize(video_path)
+            app.logger.info(f"Tamanho do arquivo: {file_size} bytes")
+            
+            if file_size == 0:
+                app.logger.error("Arquivo de vídeo está vazio")
+                return jsonify({'error': 'Arquivo de vídeo está vazio'}), 404
+        except OSError as e:
+            app.logger.error(f"Erro ao verificar tamanho do arquivo: {e}")
+            return jsonify({'error': 'Erro ao verificar arquivo'}), 500
+        
+        app.logger.info(f"Enviando arquivo: {video_path}")
+        output_filename = session_data.get('output_name', f'video_{session_id}.mp4')
+        return send_file(video_path, as_attachment=True, download_name=output_filename)
+        
     except Exception as e:
         app.logger.error(f"Erro no download: {e}")
-        return str(e), 500
+        import traceback
+        app.logger.error(traceback.format_exc())
+        return jsonify({'error': 'Erro interno do servidor'}), 500
 
 @app.route('/get_transcription/<session_id>')
 def get_transcription(session_id):

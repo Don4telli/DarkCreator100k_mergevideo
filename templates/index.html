@@ -244,22 +244,34 @@
             try {
                 const response = await fetch(`/progress?session_id=${sessionId}&type=${type}`);
                 if (!response.ok) throw new Error('Falha na resposta do servidor de progresso.');
-                
+
                 const data = await response.json();
 
                 const progressCircle = document.getElementById(`${type}ProgressCircle`);
                 const progressTextElem = document.getElementById(`${type}ProgressText`);
                 const progressStatusText = document.getElementById(`${type}ProgressStatus`);
-                
-                const progress = Math.round(data.progress || 0);
-                progressCircle.style.background = `conic-gradient(#007AFF ${progress * 3.6}deg, #f0f0f0 ${progress * 3.6}deg)`;
+
+                // Garantir que o progresso nunca volte
+                if (!window.lastProgress) window.lastProgress = {};
+                if (!window.lastProgress[type]) window.lastProgress[type] = 0;
+
+                const rawProgress = Math.round(data.progress || 0);
+                const progress = Math.max(window.lastProgress[type], rawProgress);
+                window.lastProgress[type] = progress;
+
+                // Atualiza visual do progresso
+                progressCircle.style.background = `conic-gradient(#00ffe0 ${progress * 3.6}deg, #ccc 0deg)`;
                 progressTextElem.textContent = `${progress}%`;
                 progressStatusText.textContent = data.message;
 
+                // Verifica erros ou conclusão
                 if (data.message && (data.message.toLowerCase().includes('erro') || data.message.toLowerCase().includes('falha'))) {
                     handleTaskEnd(sessionId, type, false, data.message, data);
                 } else if (progress >= 100) {
                     handleTaskEnd(sessionId, type, true, data.message, data);
+                } else {
+                    // Continua verificando a cada 2.5s
+                    setTimeout(() => checkProgress(sessionId, type), 2500);
                 }
             } catch (err) {
                 handleTaskEnd(null, type, false, 'Falha ao obter progresso.', {});
