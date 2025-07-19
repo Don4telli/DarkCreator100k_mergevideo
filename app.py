@@ -71,9 +71,10 @@ def get_signed_url():
         
         # Gerar signed URL para upload (válida por 1 hora)
         signed_url = blob.generate_signed_url(
-            version="v4",
-            expiration=datetime.utcnow() + timedelta(hours=1),
-            method="PUT"
+        version="v4",
+        expiration=datetime.utcnow() + timedelta(hours=1),
+        method="PUT",
+        service_account_email="storage-signer-sa@dark-creator-video-app.iam.gserviceaccount.com"
         )
         
         logger.info(f"✅ Signed URL gerada para: {object_name}")
