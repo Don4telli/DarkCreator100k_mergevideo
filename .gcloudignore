@@ -1,0 +1,9 @@
+# Ignora apenas o que não interessa
+.git/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+*.log

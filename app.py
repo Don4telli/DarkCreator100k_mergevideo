@@ -7,7 +7,13 @@ import os
 import uuid
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB upload limit
+app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024  # 512MB upload limit
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return "Arquivo muito grande. O limite é 512MB.", 413
+
+
 
 # It's good practice to create a 'templates' folder for your HTML files.
 # The following line assumes index.html is in a 'templates' folder.
@@ -18,7 +24,6 @@ def index():
     return render_template("index.html") 
 
 BUCKET_NAME = "dark_storage"
-
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
 ALLOWED_AUDIO_EXTENSIONS = {'.mp3'}
 
