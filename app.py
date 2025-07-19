@@ -158,13 +158,15 @@ def create_video():
     logger.info(f"📋 Headers da requisição: {dict(request.headers)}")
     logger.info(f"🔍 Método da requisição: {request.method}")
     
-    # Get request data before starting thread
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'Dados JSON são obrigatórios'}), 400
-    except Exception as e:
-        return jsonify({'error': f'Erro ao processar JSON: {str(e)}'}), 400
+    # Pull all data in the view, then hand it to your worker
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Dados JSON são obrigatórios'}), 400
+    
+    # Validate data
+    image_filenames = data.get('image_filenames', [])
+    if not image_filenames:
+        return jsonify({'error': 'image_filenames é obrigatório'}), 400
     
     # Generate unique session ID for progress tracking
     session_id = str(uuid.uuid4())
@@ -180,84 +182,80 @@ def create_video():
             'total': total
         }
     
-    def process_video(request_data):
-        try:
-            
-            # Verificar se os nomes dos arquivos foram fornecidos
-            image_filenames = request_data.get('image_filenames', [])
-            audio_filename = request_data.get('audio_filename')
-            filename = request_data.get('filename', 'my_video.mp4')
-            aspect_ratio = request_data.get('aspect_ratio', '9:16')
-            green_duration = float(request_data.get('green_duration', 5.0))
-            
-            if not image_filenames:
-                progress_data[session_id] = {'status': 'error', 'message': 'image_filenames é obrigatório'}
-                return
-            
-            logger.info(f"📂 Processando {len(image_filenames)} imagens")
-            if audio_filename:
-                logger.info(f"🎵 Áudio fornecido: {audio_filename}")
-            
-            progress_data[session_id] = {'status': 'downloading', 'progress': 10, 'message': 'Downloading images from storage...'}
-            
-            with tempfile.TemporaryDirectory() as tmpdir:
-                # Baixar imagens do bucket
-                image_paths = []
-                for i, blob_name in enumerate(image_filenames):
-                    logger.info(f"⬇️ Baixando imagem {i+1}/{len(image_filenames)}: {blob_name}")
-                    local_path = os.path.join(tmpdir, f"image_{i}.jpg")
-                    download_from_bucket(BUCKET_NAME, blob_name, local_path)
-                    image_paths.append(local_path)
-                
-                # Baixar áudio do bucket (se fornecido)
-                audio_path = None
-                if audio_filename:
-                    logger.info(f"⬇️ Baixando áudio: {audio_filename}")
-                    audio_path = os.path.join(tmpdir, "audio.mp3")
-                    download_from_bucket(BUCKET_NAME, audio_filename, audio_path)
-                
-                progress_data[session_id] = {'status': 'processing', 'progress': 20, 'message': 'Starting video generation...'}
-                
-                # Gerar vídeo
-                output_filename = filename if filename.endswith('.mp4') else f"{filename}.mp4"
-                output_path = os.path.join(tmpdir, output_filename)
-                
-                logger.info("🎬 Iniciando geração do vídeo...")
-                generate_final_video(image_paths, audio_path, output_path, green_duration, aspect_ratio, progress_callback)
-                
-                progress_data[session_id] = {'status': 'uploading', 'progress': 90, 'message': 'Uploading final video...'}
-                
-                # Upload do vídeo para o bucket
-                logger.info("☁️ Fazendo upload do vídeo para o bucket...")
-                video_blob_name = f"videos/{output_filename}"
-                download_url = upload_video_to_bucket(BUCKET_NAME, output_path, video_blob_name)
-                
-                logger.info(f"✅ Vídeo criado e enviado para o bucket com sucesso!")
-                progress_data[session_id] = {
-                    'status': 'completed',
-                    'progress': 100,
-                    'message': 'Video created successfully!',
-                    'download_url': download_url,
-                    'filename': output_filename,
-                    'completed': True
-                }
-                
-        except Exception as e:
-            logger.exception(f"❌ Erro ao criar vídeo: {str(e)}")
-            progress_data[session_id] = {
-                'status': 'error',
-                'message': str(e),
-                'completed': True
-            }
-    
     # Start video processing in background thread
-    thread = threading.Thread(target=process_video, args=(data,))
+    thread = threading.Thread(target=process_video, args=(data, session_id, progress_callback))
     thread.start()
     
     return jsonify({
         'session_id': session_id,
         'message': 'Video processing started'
     })
+
+def process_video(data, session_id, progress_callback):
+    """Process video with data passed from the route"""
+    try:
+        # Now *use* data directly
+        images = data['image_filenames']
+        audio = data.get('audio_filename')
+        filename = data.get('filename', 'my_video.mp4')
+        aspect_ratio = data.get('aspect_ratio', '9:16')
+        green_duration = float(data.get('green_duration', 5.0))
+        
+        logger.info(f"📂 Processando {len(images)} imagens")
+        if audio:
+            logger.info(f"🎵 Áudio fornecido: {audio}")
+        
+        progress_data[session_id] = {'status': 'downloading', 'progress': 10, 'message': 'Downloading images from storage...'}
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Baixar imagens do bucket
+            image_paths = []
+            for i, blob_name in enumerate(images):
+                logger.info(f"⬇️ Baixando imagem {i+1}/{len(images)}: {blob_name}")
+                local_path = os.path.join(tmpdir, f"image_{i}.jpg")
+                download_from_bucket(BUCKET_NAME, blob_name, local_path)
+                image_paths.append(local_path)
+            
+            # Baixar áudio do bucket (se fornecido)
+            audio_path = None
+            if audio:
+                logger.info(f"⬇️ Baixando áudio: {audio}")
+                audio_path = os.path.join(tmpdir, "audio.mp3")
+                download_from_bucket(BUCKET_NAME, audio, audio_path)
+            
+            progress_data[session_id] = {'status': 'processing', 'progress': 20, 'message': 'Starting video generation...'}
+            
+            # Gerar vídeo
+            output_filename = filename if filename.endswith('.mp4') else f"{filename}.mp4"
+            output_path = os.path.join(tmpdir, output_filename)
+            
+            logger.info("🎬 Iniciando geração do vídeo...")
+            generate_final_video(image_paths, audio_path, output_path, green_duration, aspect_ratio, progress_callback)
+            
+            progress_data[session_id] = {'status': 'uploading', 'progress': 90, 'message': 'Uploading final video...'}
+            
+            # Upload do vídeo para o bucket
+            logger.info("☁️ Fazendo upload do vídeo para o bucket...")
+            video_blob_name = f"videos/{output_filename}"
+            download_url = upload_video_to_bucket(BUCKET_NAME, output_path, video_blob_name)
+            
+            logger.info(f"✅ Vídeo criado e enviado para o bucket com sucesso!")
+            progress_data[session_id] = {
+                'status': 'completed',
+                'progress': 100,
+                'message': 'Video created successfully!',
+                'download_url': download_url,
+                'filename': output_filename,
+                'completed': True
+            }
+                
+    except Exception as e:
+        logger.exception(f"❌ Erro ao criar vídeo: {str(e)}")
+        progress_data[session_id] = {
+            'status': 'error',
+            'message': str(e),
+            'completed': True
+        }
 
 @app.route("/")
 def index():
