@@ -250,15 +250,17 @@
       document.getElementById('uploadStats').textContent = '';
 
       try {
-        const files = Array.from(document.getElementById('imageFiles').files);
+        const files = Array.from(imageInput.files)
+                   .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
         const audioFile = document.getElementById('audioFile').files[0];
         totalFiles = files.length + (audioFile ? 1 : 0);
         
         progressText.textContent = `Starting upload of ${totalFiles} files…`;
         
-        // 1) Upload images in parallel (max 20 concurrent)
+        // 1) Upload images in parallel (max 60 concurrent)
         const uploadedNames = [];
-        const maxConcurrent = 20;
+        const maxConcurrent = 60;
         
         // Semaphore implementation for controlling concurrency
         class Semaphore {
@@ -303,6 +305,7 @@
         
         const uploadResults = await Promise.all(uploadPromises);
         uploadedNames.push(...uploadResults);
+        
 
         // 2) Upload audio if present (after all images are uploaded)
         let audioName = null;
