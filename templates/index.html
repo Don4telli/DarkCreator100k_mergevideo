@@ -256,7 +256,7 @@
                 throw new Error(error.error || 'Erro ao criar vídeo');
             }
             
-            return response;
+            return await response.json();
         }
 
         form.addEventListener('submit', async function(e) {
@@ -310,23 +310,26 @@
                 updateProgress(90, 'Criando vídeo...');
                 
                 // Criar vídeo
-                const videoResponse = await createVideo(imageBlobNames, audioBlobName, greenDuration);
+                const videoData = await createVideo(imageBlobNames, audioBlobName, greenDuration);
                 
-                updateProgress(100, 'Vídeo criado com sucesso!');
-                
-                // Download do vídeo
-                const blob = await videoResponse.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `video_${Date.now()}.mp4`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                
-                console.log('✅ Processo concluído com sucesso!');
-                showMessage('✅ Vídeo criado e baixado com sucesso!', 'success');
+                if (videoData.success && videoData.download_url) {
+                    updateProgress(100, 'Vídeo criado com sucesso!');
+                    
+                    // Download do vídeo usando a URL retornada
+                    const a = document.createElement('a');
+                    a.href = videoData.download_url;
+                    a.download = videoData.filename;
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    showMessage(`✅ Vídeo criado e baixado com sucesso! Arquivo: ${videoData.filename}`, 'success');
+                 } else {
+                     throw new Error('Resposta inválida do servidor');
+                 }
+                 
+                 console.log('✅ Processo concluído com sucesso!');
                 
             } catch (error) {
                 console.error('❌ Erro:', error);

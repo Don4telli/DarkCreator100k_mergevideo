@@ -98,9 +98,33 @@ def download_from_bucket(bucket_name, blob_name, destination_file):
         logger.exception(f"❌ Erro ao baixar do bucket: {str(e)}")
         raise
 
+def upload_video_to_bucket(bucket_name, local_file_path, destination_blob_name):
+    """Faz upload do vídeo para o bucket e retorna a URL de download"""
+    try:
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(destination_blob_name)
+        
+        # Upload do arquivo
+        blob.upload_from_filename(local_file_path)
+        
+        # Gerar URL de download com validade de 24 horas
+        download_url = blob.generate_signed_url(
+            version="v4",
+            expiration=datetime.utcnow() + timedelta(hours=24),
+            method="GET"
+        )
+        
+        return download_url
+    except Exception as e:
+        logger.exception(f"❌ Erro ao fazer upload do vídeo para o bucket: {str(e)}")
+        raise
+
 @app.route("/create_video", methods=["POST"])
 def create_video():
     logger.info("📥 Recebendo solicitação para criar vídeo...")
+    logger.info(f"📋 Headers da requisição: {dict(request.headers)}")
+    logger.info(f"🔍 Método da requisição: {request.method}")
     try:
         data = request.get_json()
         if not data:
@@ -138,8 +162,18 @@ def create_video():
             
             logger.info("🎬 Iniciando geração do vídeo...")
             generate_final_video(image_paths, audio_path, output_path, green_duration)
-            logger.info(f"✅ Vídeo criado com sucesso, enviando arquivo: {output_path}")
-            return send_file(output_path, as_attachment=True, download_name=output_filename)
+            
+            # Upload do vídeo para o bucket
+            logger.info("☁️ Fazendo upload do vídeo para o bucket...")
+            video_blob_name = f"videos/{output_filename}"
+            download_url = upload_video_to_bucket(BUCKET_NAME, output_path, video_blob_name)
+            
+            logger.info(f"✅ Vídeo criado e enviado para o bucket com sucesso!")
+            return jsonify({
+                'success': True,
+                'download_url': download_url,
+                'filename': output_filename
+            })
             
     except Exception as e:
         logger.exception(f"❌ Erro ao criar vídeo: {str(e)}")
@@ -148,6 +182,15 @@ def create_video():
 @app.route("/")
 def index():
     return send_file("templates/index.html")
+
+@app.route("/health")
+def health_check():
+    """Endpoint de health check para o Cloud Run"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'darkcreator100k-mergevideo',
+        'timestamp': datetime.utcnow().isoformat()
+    }), 200
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8080)
