@@ -35,14 +35,18 @@ def group_images_by_prefix(image_paths: List[str]):
 
 def get_audio_duration(audio_path: str) -> float:
     logger.info(f"⏱ Calculando duração do áudio: {audio_path}")
-    result = subprocess.run([
-        "ffprobe", "-v", "error", "-show_entries",
-        "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
-        audio_path
-    ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    duration = float(result.stdout)
-    logger.info(f"📏 Duração: {duration}")
-    return duration
+    try:
+        result = subprocess.run([
+            "ffprobe", "-v", "error", "-show_entries",
+            "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
+            audio_path
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+        duration = float(result.stdout)
+        logger.info(f"📏 Duração: {duration}")
+        return duration
+    except Exception as e:
+        logger.exception(f"❌ Erro ao calcular duração do áudio: {str(e)}")
+        raise
 
 
 def create_video_from_images_and_audio(image_paths: List[str], audio_path: str, output_path: str):
@@ -84,8 +88,12 @@ def create_green_clip(output_path: str, duration: int = 3, resolution=(1080, 192
         "-c:v", "libx264", "-c:a", "aac", "-pix_fmt", "yuv420p",
         output_path
     ]
-    subprocess.run(command, check=True)
-    logger.info(f"✅ Clipe verde criado em: {output_path}")
+    try:
+        subprocess.run(command, check=True)
+        logger.info(f"✅ Clipe verde criado em: {output_path}")
+    except Exception as e:
+        logger.exception(f"❌ Erro ao criar clipe verde: {str(e)}")
+        raise
 
 
 def generate_final_video(image_paths: List[str], audio_path: str, output_path: str, green_duration: int = 3):

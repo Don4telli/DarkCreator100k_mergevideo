@@ -6,6 +6,7 @@ import tempfile
 import os
 import uuid
 import logging
+from flask import jsonify
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024  # 512MB upload limit
@@ -13,6 +14,11 @@ app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024  # 512MB upload limit
 @app.errorhandler(413)
 def request_entity_too_large(error):
     return "Arquivo muito grande. O limite é 512MB.", 413
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logger.exception(f"❌ Erro não tratado: {str(e)}")
+    return jsonify(error=str(e)), 500
 
 
 
@@ -31,20 +37,30 @@ ALLOWED_AUDIO_EXTENSIONS = {'.mp3'}
 def is_allowed(filename, allowed_exts):
     return any(filename.lower().endswith(ext) for ext in allowed_exts)
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 def upload_to_bucket(bucket_name, file_storage, destination_blob_name):
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-    blob.upload_from_file(file_storage)
-    return blob.name
+    try:
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(destination_blob_name)
+        blob.upload_from_file(file_storage)
+        return blob.name
+    except Exception as e:
+        logger.exception(f"❌ Erro ao fazer upload para o bucket: {str(e)}")
+        raise
 
 def download_from_bucket(bucket_name, blob_name, destination_file):
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
-    blob.download_to_filename(destination_file)
+    try:
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        blob.download_to_filename(destination_file)
+    except Exception as e:
+        logger.exception(f"❌ Erro ao baixar do bucket: {str(e)}")
+        raise
 
-logger = logging.getLogger(__name__)
 @app.route("/create_video", methods=["POST"])
 def create_video():
     logger.info("📥 Recebendo solicitação para criar vídeo...")
@@ -94,7 +110,7 @@ def create_video():
             logger.info(f"✅ Vídeo criado com sucesso, enviando arquivo: {output_path}")
             return send_file(output_path, as_attachment=True, download_name=filename)
         except Exception as e:
-            logger.error(f"❌ Erro ao criar vídeo: {str(e)}")
+            logger.exception(f"❌ Erro ao criar vídeo: {str(e)}")
             return f"Erro ao criar vídeo: {str(e)}", 500
 
 if __name__ == "__main__":
