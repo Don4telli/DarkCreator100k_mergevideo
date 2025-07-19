@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def index():
-    with open("darknews_creator_ui.html") as f:
+    with open("index.html") as f:
         return render_template_string(f.read())
 
 @app.route("/create_video", methods=["POST"])
