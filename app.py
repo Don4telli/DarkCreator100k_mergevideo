@@ -63,14 +63,13 @@ def get_signed_url():
         signed_url = blob.generate_signed_url(
             version="v4",
             expiration=datetime.utcnow() + timedelta(hours=1),
-            method="PUT",
-            content_type=request.headers.get('Content-Type', 'application/octet-stream')
+            method="PUT"
         )
         
         logger.info(f"✅ Signed URL gerada para: {unique_filename}")
         return jsonify({
             'signed_url': signed_url,
-            'blob_name': unique_filename
+            'filename': unique_filename
         })
         
     except Exception as e:
@@ -132,36 +131,42 @@ def create_video():
             return jsonify(error="Dados JSON são obrigatórios"), 400
         
         # Verificar se os nomes dos arquivos foram fornecidos
-        image_blob_names = data.get('image_files', [])
-        audio_blob_name = data.get('audio_file')
-        green_duration = int(data.get('green_duration', 3))
+        image_filenames = data.get('image_filenames', [])
+        audio_filename = data.get('audio_filename')
+        filename = data.get('filename', 'my_video.mp4')
+        aspect_ratio = data.get('aspect_ratio', '9:16')
+        green_duration = float(data.get('green_duration', 5.0))
         
-        if not image_blob_names or not audio_blob_name:
-            logger.info("❌ Arquivos de imagem ou áudio não fornecidos")
-            return jsonify(error="image_files e audio_file são obrigatórios"), 400
+        if not image_filenames:
+            logger.info("❌ Arquivos de imagem não fornecidos")
+            return jsonify(error="image_filenames é obrigatório"), 400
         
-        logger.info(f"📂 Processando {len(image_blob_names)} imagens e 1 áudio")
+        logger.info(f"📂 Processando {len(image_filenames)} imagens")
+        if audio_filename:
+            logger.info(f"🎵 Áudio fornecido: {audio_filename}")
         
         with tempfile.TemporaryDirectory() as tmpdir:
             # Baixar imagens do bucket
             image_paths = []
-            for i, blob_name in enumerate(image_blob_names):
-                logger.info(f"⬇️ Baixando imagem {i+1}/{len(image_blob_names)}: {blob_name}")
+            for i, blob_name in enumerate(image_filenames):
+                logger.info(f"⬇️ Baixando imagem {i+1}/{len(image_filenames)}: {blob_name}")
                 local_path = os.path.join(tmpdir, f"image_{i}.jpg")
                 download_from_bucket(BUCKET_NAME, blob_name, local_path)
                 image_paths.append(local_path)
             
-            # Baixar áudio do bucket
-            logger.info(f"⬇️ Baixando áudio: {audio_blob_name}")
-            audio_path = os.path.join(tmpdir, "audio.mp3")
-            download_from_bucket(BUCKET_NAME, audio_blob_name, audio_path)
+            # Baixar áudio do bucket (se fornecido)
+            audio_path = None
+            if audio_filename:
+                logger.info(f"⬇️ Baixando áudio: {audio_filename}")
+                audio_path = os.path.join(tmpdir, "audio.mp3")
+                download_from_bucket(BUCKET_NAME, audio_filename, audio_path)
             
             # Gerar vídeo
-            output_filename = f"video_{uuid.uuid4().hex[:8]}.mp4"
+            output_filename = filename if filename.endswith('.mp4') else f"{filename}.mp4"
             output_path = os.path.join(tmpdir, output_filename)
             
             logger.info("🎬 Iniciando geração do vídeo...")
-            generate_final_video(image_paths, audio_path, output_path, green_duration)
+            generate_final_video(image_paths, audio_path, output_path, green_duration, aspect_ratio)
             
             # Upload do vídeo para o bucket
             logger.info("☁️ Fazendo upload do vídeo para o bucket...")

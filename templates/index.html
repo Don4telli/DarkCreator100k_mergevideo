@@ -185,41 +185,139 @@
     const progressBar = document.getElementById("progressBar");
     const progressContainer = document.getElementById("progressContainer");
     const progressText = document.getElementById("progressText");
-    form.addEventListener("submit", function (e) {
+
+    // Função para obter signed URL
+    async function getSignedUrl(filename, fileType) {
+      console.log(`📝 Obtendo signed URL para: ${filename} (${fileType})`);
+      const response = await fetch('/get_signed_url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          filename: filename,
+          file_type: fileType
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao obter signed URL: ${response.status}`);
+      }
+      
+      return await response.json();
+    }
+
+    // Função para upload direto para GCS
+    async function uploadFileToGCS(file, signedUrl) {
+      console.log(`☁️ Fazendo upload direto para GCS: ${file.name}`);
+      const response = await fetch(signedUrl, {
+        method: 'PUT',
+        body: file
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erro no upload para GCS: ${response.status}`);
+      }
+      
+      return response;
+    }
+
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
-      console.log("📤 Iniciando submissão do formulário...");
-      const formData = new FormData(form);
-      const xhr = new XMLHttpRequest();
+      console.log("🚀 Iniciando processo de criação de vídeo...");
+      
       progressContainer.style.display = "block";
       progressBar.value = 0;
-      progressText.textContent = "Enviando...";
-      xhr.upload.addEventListener("progress", function (e) {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
+      progressText.textContent = "Preparando upload...";
+      
+      try {
+        const formData = new FormData(form);
+        const images = formData.getAll('images');
+        const audio = formData.get('audio');
+        
+        const totalFiles = images.length + (audio ? 1 : 0);
+        let uploadedFiles = 0;
+        
+        const uploadedFilenames = [];
+        
+        // Upload das imagens
+        for (let i = 0; i < images.length; i++) {
+          const image = images[i];
+          console.log(`📸 Processando imagem ${i + 1}/${images.length}: ${image.name}`);
+          
+          const urlData = await getSignedUrl(image.name, 'image');
+          await uploadFileToGCS(image, urlData.signed_url);
+          uploadedFilenames.push(urlData.filename);
+          
+          uploadedFiles++;
+          const percent = Math.round((uploadedFiles / totalFiles) * 50); // 50% para uploads
           progressBar.value = percent;
-          progressText.textContent = `Upload: ${percent}%`;
-          console.log(`📊 Progresso de upload: ${percent}%`);
+          progressText.textContent = `Upload ${uploadedFiles}/${totalFiles} concluído`;
         }
-      });
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          progressText.textContent = "✅ Concluído!";
-          console.log("✅ Upload e criação de vídeo concluídos com sucesso!");
-          const blob = new Blob([xhr.response], { type: "video/mp4" });
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "video_final.mp4";
+        
+        // Upload do áudio (se existir)
+        let audioFilename = null;
+        if (audio && audio.size > 0) {
+          console.log(`🎵 Processando áudio: ${audio.name}`);
+          const urlData = await getSignedUrl(audio.name, 'audio');
+          await uploadFileToGCS(audio, urlData.signed_url);
+          audioFilename = urlData.filename;
+          
+          uploadedFiles++;
+          const percent = Math.round((uploadedFiles / totalFiles) * 50);
+          progressBar.value = percent;
+          progressText.textContent = `Upload ${uploadedFiles}/${totalFiles} concluído`;
+        }
+        
+        // Criar vídeo
+        progressText.textContent = "Criando vídeo...";
+        progressBar.value = 60;
+        
+        const videoData = {
+          image_filenames: uploadedFilenames,
+          audio_filename: audioFilename,
+          filename: formData.get('filename') || 'my_video.mp4',
+          aspect_ratio: formData.get('aspect_ratio') || '9:16',
+          green_duration: parseFloat(formData.get('green_duration')) || 5.0
+        };
+        
+        console.log("🎬 Enviando dados para criação do vídeo:", videoData);
+        
+        const response = await fetch('/create_video', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(videoData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erro na criação do vídeo: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.download_url) {
+          progressBar.value = 100;
+          progressText.textContent = "✅ Vídeo criado com sucesso!";
+          
+          // Download automático
+          const a = document.createElement('a');
+          a.href = result.download_url;
+          a.download = result.filename || 'video.mp4';
           a.click();
-        } else if (xhr.readyState === 4 && xhr.status !== 200) {
-          progressText.textContent = "❌ Erro ao criar vídeo..";
-          console.log("❌ Erro no servidor:", xhr.status, xhr.responseText);
+          
+          console.log("✅ Vídeo criado e baixado com sucesso!");
+        } else {
+          throw new Error(result.error || 'Erro desconhecido na criação do vídeo');
         }
-      };
-      xhr.open("POST", "/create_video", true);
-      xhr.responseType = "blob";
-      console.log("🚀 Enviando dados para /create_video");
-      xhr.send(formData);
+        
+      } catch (error) {
+        console.log("❌ Erro:", error);
+        progressText.textContent = "❌ Erro no processo";
+        progressBar.value = 0;
+        alert(`Erro: ${error.message}`);
+      }
     });
   </script>
 
