@@ -1,0 +1,16 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/dark-creator-video-app/darkcreator100k-mergevideo', '.']
+
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args: [
+    'run', 'deploy', 'darkcreator100k-mergevideo',
+    '--image', 'gcr.io/dark-creator-video-app/darkcreator100k-mergevideo',
+    '--region', 'southamerica-east1',
+    '--platform', 'managed',
+    '--allow-unauthenticated'
+  ]
+
+images:
+- 'gcr.io/dark-creator-video-app/darkcreator100k-mergevideo'
