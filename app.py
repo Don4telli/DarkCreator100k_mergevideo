@@ -276,7 +276,7 @@ def process_video(data, session_id, progress_callback):
             
             logger.info(f"✅ Vídeo criado e enviado para o bucket com sucesso!")
             progress_data[session_id] = {
-                'status': 'done',
+                'status': 'completed',
                 'progress': 100,
                 'message': 'Video created successfully!',
                 'download_url': signed_url,
