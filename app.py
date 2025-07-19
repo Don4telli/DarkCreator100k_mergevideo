@@ -1,5 +1,5 @@
 from flask import Flask, request, send_file, render_template
-from ffmpeg_processor import generate_final_video  # <-- CORRECTED IMPORT
+from core.ffmpeg_processor import generate_final_video 
 from werkzeug.utils import secure_filename
 from google.cloud import storage
 import tempfile
