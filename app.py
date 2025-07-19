@@ -321,6 +321,13 @@ def download_video(session_id):
     app.logger.info(f"Signed URL gerada com sucesso para {blob_path}")
     return jsonify({ "download_url": url })
 
+@app.route("/list_videos", methods=["GET"])
+def list_videos():
+    client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
+    names = [b.name for b in bucket.list_blobs(prefix="videos/")]
+    return jsonify(names)
+
 @app.route("/health")
 def health_check():
     """Endpoint de health check para o Cloud Run"""
