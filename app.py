@@ -15,7 +15,7 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB upload limit
 # but using a 'templates' folder is the standard for Flask.
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html") # <-- MORE ROBUST WAY TO RENDER
+    return render_template("index.html") 
 
 BUCKET_NAME = "dark_storage"
 

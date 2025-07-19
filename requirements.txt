@@ -1,4 +1,5 @@
-flask
-gunicorn
-google-cloud-storage
-werkzeug
+flask==3.1.1
+gunicorn==23.0.0
+google-cloud-storage==3.2.0
+werkzeug==3.1.3
+Pillow==10.1.3
