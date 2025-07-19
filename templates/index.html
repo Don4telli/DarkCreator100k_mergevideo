@@ -235,7 +235,12 @@
         const images = formData.getAll('images');
         const audio = formData.get('audio');
         
-        const totalFiles = images.length + (audio ? 1 : 0);
+        // Validar se há imagens
+        if (!images || images.length === 0 || images[0].size === 0) {
+          throw new Error('Por favor, selecione pelo menos uma imagem.');
+        }
+        
+        const totalFiles = images.length + (audio && audio.size > 0 ? 1 : 0);
         let uploadedFiles = 0;
         
         const uploadedFilenames = [];
@@ -243,6 +248,8 @@
         // Upload das imagens
         for (let i = 0; i < images.length; i++) {
           const image = images[i];
+          if (image.size === 0) continue; // Pular arquivos vazios
+          
           console.log(`📸 Processando imagem ${i + 1}/${images.length}: ${image.name}`);
           
           const urlData = await getSignedUrl(image.name, 'image');
@@ -292,7 +299,8 @@
         });
         
         if (!response.ok) {
-          throw new Error(`Erro na criação do vídeo: ${response.status}`);
+          const errorText = await response.text();
+          throw new Error(`Erro na criação do vídeo: ${response.status} - ${errorText}`);
         }
         
         const result = await response.json();
