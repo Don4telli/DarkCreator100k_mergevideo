@@ -1,10 +1,34 @@
 from flask import Flask, request, send_file, render_template_string
 from core.ffmpeg_processor import generate_final_video
+from werkzeug.utils import secure_filename
+from google.cloud import storage
 import tempfile
 import os
-from werkzeug.utils import secure_filename
+import uuid
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB upload limit
+
+BUCKET_NAME = "dark_storage"  # Bucket correto como você mostrou
+
+ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
+ALLOWED_AUDIO_EXTENSIONS = {'.mp3'}
+
+def is_allowed(filename, allowed_exts):
+    return any(filename.lower().endswith(ext) for ext in allowed_exts)
+
+def upload_to_bucket(bucket_name, file_storage, destination_blob_name):
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_file(file_storage)
+    return blob.name
+
+def download_from_bucket(bucket_name, blob_name, destination_file):
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    blob.download_to_filename(destination_file)
 
 @app.route("/", methods=["GET"])
 def index():
@@ -22,15 +46,30 @@ def create_video():
     if not image_files or not audio_file:
         return "Missing images or audio", 400
 
+    for image in image_files:
+        if not is_allowed(image.filename, ALLOWED_IMAGE_EXTENSIONS):
+            return f"Formato inválido para imagem: {image.filename}", 400
+    if not is_allowed(audio_file.filename, ALLOWED_AUDIO_EXTENSIONS):
+        return f"Formato inválido para áudio: {audio_file.filename}", 400
+
+    uploaded_image_blobs = []
+    for image in image_files:
+        blob_name = f"uploads/{uuid.uuid4()}_{secure_filename(image.filename)}"
+        upload_to_bucket(BUCKET_NAME, image, blob_name)
+        uploaded_image_blobs.append(blob_name)
+
+    audio_blob_name = f"uploads/{uuid.uuid4()}_{secure_filename(audio_file.filename)}"
+    upload_to_bucket(BUCKET_NAME, audio_file, audio_blob_name)
+
     with tempfile.TemporaryDirectory() as tmpdir:
         image_paths = []
-        for image in image_files:
-            img_path = os.path.join(tmpdir, secure_filename(image.filename))
-            image.save(img_path)
-            image_paths.append(img_path)
+        for blob_name in uploaded_image_blobs:
+            local_path = os.path.join(tmpdir, os.path.basename(blob_name))
+            download_from_bucket(BUCKET_NAME, blob_name, local_path)
+            image_paths.append(local_path)
 
-        audio_path = os.path.join(tmpdir, secure_filename(audio_file.filename))
-        audio_file.save(audio_path)
+        audio_path = os.path.join(tmpdir, os.path.basename(audio_blob_name))
+        download_from_bucket(BUCKET_NAME, audio_blob_name, audio_path)
 
         output_path = os.path.join(tmpdir, secure_filename(filename))
 
@@ -41,5 +80,4 @@ def create_video():
             return f"Erro ao criar vídeo: {str(e)}", 500
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=8080)# trigger
-# trigger
+    app.run(debug=True, host="0.0.0.0", port=8080)

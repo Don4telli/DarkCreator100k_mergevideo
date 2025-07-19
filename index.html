@@ -127,10 +127,10 @@
         <form id="videoForm" action="/create_video" method="POST" enctype="multipart/form-data">
 
             <label>Select Images:</label>
-            <input type="file" name="images" multiple>
+            <input type="file" name="images" accept=".jpeg,.jpg,.png" multiple>
 
             <label>Select Audio (optional):</label>
-            <input type="file" name="audio">
+            <input type="file" name="audio" accept=".mp3">
 
             <label>Output Filename:</label>
             <input type="text" name="filename" value="my_video.mp4">
@@ -145,6 +145,9 @@
             <input type="text" name="green_duration" value="5.0">
 
             <button class="submit" type="submit">Create Video</button>
+
+            <script src="upload_progress.js"></script>
+
         </form>
     </div>
 
