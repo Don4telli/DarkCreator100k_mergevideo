@@ -258,20 +258,51 @@
         
         // 1) Upload images in parallel (max 20 concurrent)
         const uploadedNames = [];
-        const batchSize = 20;
+        const maxConcurrent = 20;
         
-        for (let i = 0; i < files.length; i += batchSize) {
-          const batch = files.slice(i, i + batchSize);
-          const batchPromises = batch.map(async (file, batchIndex) => {
-            const fileIndex = i + batchIndex;
-            const { signed_url, filename } = await getSignedUrl(file.name, 'image');
-            await uploadFile(file, signed_url, fileIndex);
-            return filename;
-          });
+        // Semaphore implementation for controlling concurrency
+        class Semaphore {
+          constructor(count) {
+            this.count = count;
+            this.waiting = [];
+          }
           
-          const batchResults = await Promise.all(batchPromises);
-          uploadedNames.push(...batchResults);
+          async acquire() {
+            if (this.count > 0) {
+              this.count--;
+              return;
+            }
+            
+            return new Promise(resolve => {
+              this.waiting.push(resolve);
+            });
+          }
+          
+          release() {
+            this.count++;
+            if (this.waiting.length > 0) {
+              const resolve = this.waiting.shift();
+              this.count--;
+              resolve();
+            }
+          }
         }
+        
+        const semaphore = new Semaphore(maxConcurrent);
+        
+        const uploadPromises = files.map(async (file, index) => {
+          await semaphore.acquire();
+          try {
+            const { signed_url, filename } = await getSignedUrl(file.name, 'image');
+            await uploadFile(file, signed_url, index);
+            return filename;
+          } finally {
+            semaphore.release();
+          }
+        });
+        
+        const uploadResults = await Promise.all(uploadPromises);
+        uploadedNames.push(...uploadResults);
 
         // 2) Upload audio if present
         let audioName = null;
