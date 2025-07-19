@@ -150,7 +150,10 @@ def get_progress(session_id):
                 yield f"data: {{\"status\": \"waiting\"}}\n\n"
             time.sleep(0.5)
     
-    return Response(generate(), mimetype='text/plain')
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    })
 
 @app.route("/create_video", methods=["POST"])
 def create_video():
@@ -260,6 +263,19 @@ def process_video(data, session_id, progress_callback):
 @app.route("/")
 def index():
     return send_file("templates/index.html")
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory('static', filename)
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static', 'favicon.ico')
+
+@app.route('/@vite/client')
+def vite_client():
+    """Handle Vite client requests to prevent 404 errors"""
+    return '', 204
 
 @app.route("/health")
 def health_check():
