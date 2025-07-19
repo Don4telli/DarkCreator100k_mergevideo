@@ -39,7 +39,15 @@ def handle_exception(e):
 BUCKET_NAME = "dark_storage"
 
 def generate_download_url(blob, expires=3600):
-    return blob.generate_signed_url(expiration=expires)
+    """
+    Gera uma signed URL V4 válida por `expires` segundos (padrão: 3600s = 1h).
+    """
+    return blob.generate_signed_url(
+        version="v4",
+        expiration=expires,   # agora é um inteiro de segundos
+        method="GET"
+    )
+
 
 def allowed_file(filename, file_type):
     if file_type == "image":
