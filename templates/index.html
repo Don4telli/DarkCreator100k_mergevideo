@@ -375,7 +375,34 @@
             // Show download button instead of auto-download
             const downloadBtn = document.createElement('button');
             downloadBtn.textContent = '📥 Download Video';
-            downloadBtn.style.cssText = 'margin: 10px 0; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;';
+            downloadBtn.className = 'btn';
+            downloadBtn.style.cssText = `
+              width: 100%;
+              padding: 15px;
+              background: linear-gradient(135deg, #28a745, #20c997);
+              color: white;
+              border: none;
+              border-radius: 12px;
+              font-size: 18px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+              margin: 20px 0;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            `;
+            
+            // Add hover effects
+            downloadBtn.onmouseenter = () => {
+              downloadBtn.style.transform = 'translateY(-2px)';
+              downloadBtn.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)';
+            };
+            downloadBtn.onmouseleave = () => {
+              downloadBtn.style.transform = 'translateY(0)';
+              downloadBtn.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.3)';
+            };
+            
             downloadBtn.onclick = () => {
               const a = document.createElement('a');
               a.href = download_url;
@@ -384,6 +411,7 @@
               a.click();
               document.body.removeChild(a);
               downloadBtn.textContent = '✅ Download started!';
+              downloadBtn.style.background = 'linear-gradient(135deg, #6c757d, #495057)';
               downloadBtn.disabled = true;
             };
             
