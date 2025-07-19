@@ -1,16 +1,10 @@
-from flask import Flask, request, send_file, jsonify, Response, abort
+from flask import Flask, request, send_file, jsonify, Response, abort, send_from_directory
+from werkzeug.exceptions import HTTPException
 from google.cloud import storage
 from core.ffmpeg_processor import generate_final_video
-import os
-import tempfile
-import uuid
-import logging
-from flask import jsonify
+import os, tempfile, uuid, logging, threading, time, json
 from datetime import datetime, timedelta
 from flask_cors import CORS
-import json
-import threading
-import time
 
 
 app = Flask(__name__)
@@ -19,22 +13,26 @@ app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024  # 512MB
 # Global progress tracking
 progress_data = {}
 
-# Permite CORS só para o POST /get_signed_url vindo do seu serviço Cloud Run
+# Configure CORS for all necessary endpoints
 CORS(app, resources={
-    r"/get_signed_url": {
-        "origins": "https://darkcreator100k-mergevideo-998923445962.southamerica-east1.run.app",
-        "methods": ["POST", "OPTIONS"]
-    }
+    r"/get_signed_url": {"origins": "*"},
+    r"/create_video": {"origins": "*"},
+    r"/progress/*": {"origins": "*"},
+    r"/download/*": {"origins": "*"}
 })
 
 @app.errorhandler(413)
 def too_large(e):
     return "Arquivo muito grande. O limite é 512MB.", 413
 
+@app.errorhandler(HTTPException)
+def handle_http(e):
+    return jsonify(error=e.description), e.code
+
 @app.errorhandler(Exception)
 def handle_exception(e):
-    logger.exception(f"❌ Erro não tratado: {str(e)}")
-    return jsonify(error=str(e)), 500
+    logger.exception("Unhandled exception")
+    return jsonify(error="Internal server error"), 500
 
 
 
@@ -66,6 +64,11 @@ def get_signed_url():
         
         filename = data['filename']
         file_type = data['file_type']
+        
+        # Validate filename to prevent path traversal
+        if '../' in filename or '\\' in filename:
+            logger.info(f"❌ Nome de arquivo inválido (path traversal): {filename}")
+            return jsonify(error="Nome de arquivo inválido"), 400
         
         if not allowed_file(filename, file_type):
             logger.info(f"❌ Tipo de arquivo não permitido: {filename}")
@@ -148,6 +151,8 @@ def get_progress(session_id):
                 data = progress_data[session_id]
                 yield f"data: {json.dumps(data)}\n\n"
                 if data.get('completed', False):
+                    # Clean up completed progress data to prevent memory leaks
+                    del progress_data[session_id]
                     break
             else:
                 yield f"data: {{\"status\": \"waiting\"}}\n\n"
@@ -173,6 +178,13 @@ def create_video():
     image_filenames = data.get('image_filenames', [])
     if not image_filenames:
         return jsonify({'error': 'image_filenames é obrigatório'}), 400
+    
+    # Validate that filenames don't contain path traversal
+    audio_filename = data.get('audio_filename')
+    for filename in image_filenames + ([audio_filename] if audio_filename else []):
+        if '../' in filename or '\\' in filename or filename.startswith('/'):
+            logger.warning(f"❌ Tentativa de path traversal detectada: {filename}")
+            return jsonify({'error': 'Nome de arquivo inválido'}), 400
     
     # Generate unique session ID for progress tracking
     session_id = str(uuid.uuid4())
@@ -244,12 +256,15 @@ def process_video(data, session_id, progress_callback):
             logger.info("☁️ Fazendo upload do vídeo para o bucket...")
             video_blob_name = f"videos/{session_id}.mp4"
             client = storage.Client()
-            bucket = client.bucket(BUCKET_NAME)
-            blob = bucket.blob(video_blob_name)
-            blob.upload_from_filename(output_path)
-            
-            # dentro da função que roda em background:
-            signed_url = generate_download_url(blob)
+            try:
+                bucket = client.bucket(BUCKET_NAME)
+                blob = bucket.blob(video_blob_name)
+                blob.upload_from_filename(output_path)
+                
+                # dentro da função que roda em background:
+                signed_url = generate_download_url(blob)
+            finally:
+                client.close()
             
             logger.info(f"✅ Vídeo criado e enviado para o bucket com sucesso!")
             progress_data[session_id] = {
@@ -290,36 +305,24 @@ def vite_client():
 def download_video(session_id):
     blob_path = f"videos/{session_id}.mp4"
     client = storage.Client()
-    bucket = client.bucket(BUCKET_NAME)
-
-    # 1) Liste blobs no prefixo, só pra conferência
-    try:
-        # Atenção: list_blobs faz chamadas paginadas, aqui pegamos só os primeiros 100
-        names = [b.name for b in bucket.list_blobs(prefix="videos/")]
-        app.logger.info(f"Blobs em videos/: {names}")
-    except Exception as e:
-        app.logger.error(f"Erro listando blobs: {e}", exc_info=True)
     
-    # 2) Tente buscar o blob
     try:
+        bucket = client.bucket(BUCKET_NAME)
         blob = bucket.get_blob(blob_path)
-    except Exception as e:
-        app.logger.error(f"Erro get_blob para {blob_path}: {e}", exc_info=True)
-        abort(500, description="Erro acessando o Storage")
-
-    if blob is None:
-        app.logger.info(f"Blob não encontrado: {blob_path}")
-        abort(404, description="Vídeo não encontrado no bucket")
-
-    # 3) Gere a signed URL com try/except
-    try:
+        
+        if blob is None:
+            app.logger.info(f"Blob não encontrado: {blob_path}")
+            abort(404, description="Vídeo não encontrado no bucket")
+        
         url = generate_download_url(blob)
+        app.logger.info(f"Signed URL gerada com sucesso para {blob_path}")
+        return jsonify({ "download_url": url })
+        
     except Exception as e:
-        app.logger.error(f"Erro gerando signed URL para {blob_path}: {e}", exc_info=True)
-        abort(500, description="Erro gerando signed URL")
-
-    app.logger.info(f"Signed URL gerada com sucesso para {blob_path}")
-    return jsonify({ "download_url": url })
+        app.logger.error(f"Erro no download endpoint para {blob_path}: {e}", exc_info=True)
+        abort(500, description="Erro acessando o Storage")
+    finally:
+        client.close()
 
 @app.route("/list_videos", methods=["GET"])
 def list_videos():
