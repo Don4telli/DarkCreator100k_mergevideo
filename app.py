@@ -1,10 +1,13 @@
-
 from flask import Flask, request, jsonify, send_file
 from core.ffmpeg_processor import generate_final_video
 import tempfile
 import os
 
 app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "✅ DarkCreator100k está no ar!"
 
 @app.route("/create_video", methods=["POST"])
 def create_video():
@@ -20,7 +23,6 @@ def create_video():
 
     try:
         generate_final_video(image_paths, audio_path, output_path, green_duration=3)
-
         return send_file(output_path, as_attachment=True, download_name="video_final.mp4")
     except Exception as e:
         return jsonify({"error": str(e)}), 500
