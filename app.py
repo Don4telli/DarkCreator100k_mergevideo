@@ -1,18 +1,18 @@
-from flask import Flask, request, send_file, render_template
-from core.ffmpeg_processor import generate_final_video 
-from werkzeug.utils import secure_filename
+from flask import Flask, request, send_file, jsonify
 from google.cloud import storage
-import tempfile
+from core.ffmpeg_processor import generate_final_video
 import os
+import tempfile
 import uuid
 import logging
 from flask import jsonify
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024  # 512MB upload limit
+app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024  # 512MB
 
 @app.errorhandler(413)
-def request_entity_too_large(error):
+def too_large(e):
     return "Arquivo muito grande. O limite é 512MB.", 413
 
 @app.errorhandler(Exception)
@@ -22,23 +22,60 @@ def handle_exception(e):
 
 
 
-# It's good practice to create a 'templates' folder for your HTML files.
-# The following line assumes index.html is in a 'templates' folder.
-# If index.html is in the same folder as app.py, your original code will work,
-# but using a 'templates' folder is the standard for Flask.
-@app.route("/", methods=["GET"])
-def index():
-    return render_template("index.html") 
+BUCKET_NAME = "darkcreator100k-mergevideo"
 
-BUCKET_NAME = "dark_storage"
-ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
-ALLOWED_AUDIO_EXTENSIONS = {'.mp3'}
-
-def is_allowed(filename, allowed_exts):
+def allowed_file(filename, file_type):
+    if file_type == "image":
+        allowed_exts = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"]
+    elif file_type == "audio":
+        allowed_exts = [".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"]
+    else:
+        return False
     return any(filename.lower().endswith(ext) for ext in allowed_exts)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+@app.route("/get_signed_url", methods=["POST"])
+def get_signed_url():
+    logger.info("📝 Recebendo solicitação para gerar signed URL...")
+    try:
+        data = request.get_json()
+        if not data or 'filename' not in data or 'file_type' not in data:
+            logger.info("❌ Dados inválidos na solicitação")
+            return jsonify(error="filename e file_type são obrigatórios"), 400
+        
+        filename = data['filename']
+        file_type = data['file_type']
+        
+        if not allowed_file(filename, file_type):
+            logger.info(f"❌ Tipo de arquivo não permitido: {filename}")
+            return jsonify(error="Tipo de arquivo não permitido"), 400
+        
+        # Gerar nome único para o arquivo
+        unique_filename = f"{uuid.uuid4()}_{filename}"
+        
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(unique_filename)
+        
+        # Gerar signed URL para upload (válida por 1 hora)
+        signed_url = blob.generate_signed_url(
+            version="v4",
+            expiration=datetime.utcnow() + timedelta(hours=1),
+            method="PUT",
+            content_type=request.headers.get('Content-Type', 'application/octet-stream')
+        )
+        
+        logger.info(f"✅ Signed URL gerada para: {unique_filename}")
+        return jsonify({
+            'signed_url': signed_url,
+            'blob_name': unique_filename
+        })
+        
+    except Exception as e:
+        logger.exception(f"❌ Erro ao gerar signed URL: {str(e)}")
+        return jsonify(error=str(e)), 500
 
 def upload_to_bucket(bucket_name, file_storage, destination_blob_name):
     try:
@@ -64,54 +101,53 @@ def download_from_bucket(bucket_name, blob_name, destination_file):
 @app.route("/create_video", methods=["POST"])
 def create_video():
     logger.info("📥 Recebendo solicitação para criar vídeo...")
-    image_files = request.files.getlist("images")
-    audio_file = request.files.get("audio")
-    filename = request.form.get("filename", "video_final.mp4")
-    aspect_ratio = request.form.get("aspect_ratio", "9:16")
-    green_duration = float(request.form.get("green_duration", "3.0"))
-    logger.info(f"🖼 Imagens recebidas: {len(image_files)}")
-    logger.info(f"🎵 Áudio recebido: {audio_file.filename if audio_file else 'Nenhum'}")
-    logger.info(f"📄 Nome do arquivo de saída: {filename}")
-    logger.info(f"📐 Aspect ratio: {aspect_ratio}")
-    logger.info(f"🟢 Duração da tela verde: {green_duration}")
-    if not image_files or not audio_file:
-        logger.error("❌ Erro: Imagens ou áudio ausentes")
-        return "Missing images or audio", 400
-    for image in image_files:
-        if not is_allowed(image.filename, ALLOWED_IMAGE_EXTENSIONS):
-            logger.error(f"❌ Formato de imagem inválido: {image.filename}")
-            return f"Formato inválido para imagem: {image.filename}", 400
-    if not is_allowed(audio_file.filename, ALLOWED_AUDIO_EXTENSIONS):
-        logger.error(f"❌ Formato de áudio inválido: {audio_file.filename}")
-        return f"Formato inválido para áudio: {audio_file.filename}", 400
-    uploaded_image_blobs = []
-    for image in image_files:
-        blob_name = f"uploads/{uuid.uuid4()}_{secure_filename(image.filename)}"
-        logger.info(f"☁️ Fazendo upload de imagem para o bucket: {blob_name}")
-        upload_to_bucket(BUCKET_NAME, image, blob_name)
-        uploaded_image_blobs.append(blob_name)
-    audio_blob_name = f"uploads/{uuid.uuid4()}_{secure_filename(audio_file.filename)}"
-    logger.info(f"☁️ Fazendo upload de áudio para o bucket: {audio_blob_name}")
-    upload_to_bucket(BUCKET_NAME, audio_file, audio_blob_name)
-    with tempfile.TemporaryDirectory() as tmpdir:
-        image_paths = []
-        for blob_name in uploaded_image_blobs:
-            local_path = os.path.join(tmpdir, os.path.basename(blob_name))
-            logger.info(f"⬇️ Baixando imagem do bucket: {blob_name}")
-            download_from_bucket(BUCKET_NAME, blob_name, local_path)
-            image_paths.append(local_path)
-        audio_path = os.path.join(tmpdir, os.path.basename(audio_blob_name))
-        logger.info(f"⬇️ Baixando áudio do bucket: {audio_blob_name}")
-        download_from_bucket(BUCKET_NAME, audio_blob_name, audio_path)
-        output_path = os.path.join(tmpdir, secure_filename(filename))
-        logger.info("🛠 Iniciando geração do vídeo final...")
-        try:
+    try:
+        data = request.get_json()
+        if not data:
+            logger.info("❌ Dados JSON não fornecidos")
+            return jsonify(error="Dados JSON são obrigatórios"), 400
+        
+        # Verificar se os nomes dos arquivos foram fornecidos
+        image_blob_names = data.get('image_files', [])
+        audio_blob_name = data.get('audio_file')
+        green_duration = int(data.get('green_duration', 3))
+        
+        if not image_blob_names or not audio_blob_name:
+            logger.info("❌ Arquivos de imagem ou áudio não fornecidos")
+            return jsonify(error="image_files e audio_file são obrigatórios"), 400
+        
+        logger.info(f"📂 Processando {len(image_blob_names)} imagens e 1 áudio")
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Baixar imagens do bucket
+            image_paths = []
+            for i, blob_name in enumerate(image_blob_names):
+                logger.info(f"⬇️ Baixando imagem {i+1}/{len(image_blob_names)}: {blob_name}")
+                local_path = os.path.join(tmpdir, f"image_{i}.jpg")
+                download_from_bucket(BUCKET_NAME, blob_name, local_path)
+                image_paths.append(local_path)
+            
+            # Baixar áudio do bucket
+            logger.info(f"⬇️ Baixando áudio: {audio_blob_name}")
+            audio_path = os.path.join(tmpdir, "audio.mp3")
+            download_from_bucket(BUCKET_NAME, audio_blob_name, audio_path)
+            
+            # Gerar vídeo
+            output_filename = f"video_{uuid.uuid4().hex[:8]}.mp4"
+            output_path = os.path.join(tmpdir, output_filename)
+            
+            logger.info("🎬 Iniciando geração do vídeo...")
             generate_final_video(image_paths, audio_path, output_path, green_duration)
             logger.info(f"✅ Vídeo criado com sucesso, enviando arquivo: {output_path}")
-            return send_file(output_path, as_attachment=True, download_name=filename)
-        except Exception as e:
-            logger.exception(f"❌ Erro ao criar vídeo: {str(e)}")
-            return f"Erro ao criar vídeo: {str(e)}", 500
+            return send_file(output_path, as_attachment=True, download_name=output_filename)
+            
+    except Exception as e:
+        logger.exception(f"❌ Erro ao criar vídeo: {str(e)}")
+        return jsonify(error=str(e)), 500
+
+@app.route("/")
+def index():
+    return send_file("templates/index.html")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8080)

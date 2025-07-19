@@ -1,227 +1,352 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>DarkNews Creator 💎</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      background-color: #0a0a0a;
-      font-family: 'Inter', sans-serif;
-      color: #e0e0e0;
-      margin: 0;
-      padding: 0;
-    }
-
-    .nav {
-      display: flex;
-      justify-content: center;
-      background: #111;
-      padding: 14px;
-      box-shadow: 0 0 20px rgba(255, 77, 0, 0.2);
-    }
-
-    .nav button {
-      background: transparent;
-      border: 1px solid #ff4d00;
-      color: #ff4d00;
-      padding: 8px 14px;
-      margin: 0 8px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    .nav button:hover {
-      background-color: #ff4d00;
-      color: #0a0a0a;
-      box-shadow: 0 0 10px #ff4d00;
-    }
-
-    .container {
-      background: #101010;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 0 30px rgba(255, 77, 0, 0.2);
-      width: 420px;
-      margin: 40px auto;
-    }
-
-    h1 {
-      text-align: center;
-      font-weight: 700;
-      font-size: 24px;
-      color: #ffffff;
-      margin-bottom: 20px;
-    }
-
-    h1 .glow {
-      display: inline-block;
-      color: #ffffff;
-      text-shadow: 0 0 6px #ff6a00, 0 0 12px #ff6a00;
-    }
-
-    label {
-      display: block;
-      margin-top: 20px;
-      margin-bottom: 6px;
-      font-weight: 500;
-      color: #b0b0b0;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 10px;
-      background: #1a1a1a;
-      border: 1px solid #444;
-      border-radius: 8px;
-      color: #e0e0e0;
-      font-size: 14px;
-      outline: none;
-    }
-
-    input:focus, select:focus {
-      box-shadow: 0 0 6px #ff4d00;
-      border-color: #ff4d00;
-    }
-
-    input::file-selector-button {
-      background: #1a1a1a;
-      border: none;
-      color: #ff4d00;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button.submit {
-      margin-top: 30px;
-      width: 100%;
-      padding: 12px;
-      background-color: #ff4d00;
-      border: none;
-      border-radius: 8px;
-      color: #0a0a0a;
-      font-weight: 700;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    button.submit:hover {
-      box-shadow: 0 0 15px #ff4d00;
-    }
-
-    #progressContainer {
-      margin-top: 20px;
-      display: none;
-    }
-
-    progress {
-      width: 100%;
-      height: 20px;
-      appearance: none;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    progress::-webkit-progress-bar {
-      background-color: #1a1a1a;
-    }
-
-    progress::-webkit-progress-value {
-      background-color: #ff4d00;
-    }
-
-    #progressText {
-      margin-top: 8px;
-      font-size: 14px;
-      text-align: center;
-      color: #ccc;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DarkCreator100k - Merge Video</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 1.1em;
+        }
+        input[type="file"], select, input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        input[type="file"]:focus, select:focus, input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .submit-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        .progress-text {
+            text-align: center;
+            font-weight: 600;
+            color: #555;
+        }
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <h1>🎬 DarkCreator100k</h1>
+        <form id="videoForm">
+            <div class="form-group">
+                <label for="images">📸 Selecione as Imagens (JPG, PNG, GIF, BMP, WEBP):</label>
+                <input type="file" id="images" name="images" multiple accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" required>
+                <div id="imageInfo" class="file-info"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="audio">🎵 Selecione o Áudio (MP3, WAV, AAC, FLAC, OGG, M4A):</label>
+                <input type="file" id="audio" name="audio" accept=".mp3,.wav,.aac,.flac,.ogg,.m4a" required>
+                <div id="audioInfo" class="file-info"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="greenDuration">🟢 Duração da Tela Verde (segundos):</label>
+                <input type="number" id="greenDuration" name="greenDuration" value="3" min="1" max="10" required>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">🚀 Criar Vídeo</button>
+        </form>
+        
+        <div id="progressContainer" class="progress-container">
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div id="progressText" class="progress-text">Preparando...</div>
+        </div>
+        
+        <div id="message"></div>
+    </div>
 
-  <div class="nav">
-    <button onclick="window.open('https://chat.openai.com')">TESTE</button>
-    <button onclick="window.open('https://www.tiktok.com')">TikTok</button>
-    <button onclick="window.open('https://fishaudio.com')">Fish Audio</button>
-    <button onclick="window.open('https://whisper.openai.com')">Transcrição</button>
-  </div>
+    <script>
+        const form = document.getElementById('videoForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const messageDiv = document.getElementById('message');
+        const imageInput = document.getElementById('images');
+        const audioInput = document.getElementById('audio');
+        const imageInfo = document.getElementById('imageInfo');
+        const audioInfo = document.getElementById('audioInfo');
 
-  <div class="container">
-    <h1>DarkNews Creator <span class="glow">💎</span></h1>
+        // Mostrar informações dos arquivos selecionados
+        imageInput.addEventListener('change', function() {
+            const files = this.files;
+            if (files.length > 0) {
+                imageInfo.innerHTML = `✅ ${files.length} imagem(ns) selecionada(s)`;
+            } else {
+                imageInfo.innerHTML = '';
+            }
+        });
 
-    <form id="videoForm">
-      <label>Select Images:</label>
-      <input type="file" name="images" accept=".jpeg,.jpg,.png" multiple required>
+        audioInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                audioInfo.innerHTML = `✅ Áudio selecionado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            } else {
+                audioInfo.innerHTML = '';
+            }
+        });
 
-      <label>Select Audio (optional):</label>
-      <input type="file" name="audio" accept=".mp3">
-
-      <label>Output Filename:</label>
-      <input type="text" name="filename" value="my_video.mp4">
-
-      <label>Aspect Ratio:</label>
-      <select name="aspect_ratio">
-        <option value="9:16">9:16 (Portrait)</option>
-        <option value="16:9">16:9 (Landscape)</option>
-      </select>
-
-      <label>Green Screen Duration (s):</label>
-      <input type="text" name="green_duration" value="5.0">
-
-      <button class="submit" type="submit">Create Video</button>
-
-      <div id="progressContainer">
-        <progress id="progressBar" value="0" max="100"></progress>
-        <div id="progressText">Uploading...</div>
-      </div>
-    </form>
-  </div>
-
-  <script>
-    const form = document.getElementById("videoForm");
-    const progressBar = document.getElementById("progressBar");
-    const progressContainer = document.getElementById("progressContainer");
-    const progressText = document.getElementById("progressText");
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      console.log("📤 Iniciando submissão do formulário...");
-      const formData = new FormData(form);
-      const xhr = new XMLHttpRequest();
-      progressContainer.style.display = "block";
-      progressBar.value = 0;
-      progressText.textContent = "Enviando...";
-      xhr.upload.addEventListener("progress", function (e) {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          progressBar.value = percent;
-          progressText.textContent = `Upload: ${percent}%`;
-          console.log(`📊 Progresso de upload: ${percent}%`);
+        async function getSignedUrl(filename, fileType) {
+            console.log(`📝 Obtendo signed URL para: ${filename} (${fileType})`);
+            const response = await fetch('/get_signed_url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    filename: filename,
+                    file_type: fileType
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Erro ao obter signed URL');
+            }
+            
+            return await response.json();
         }
-      });
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          progressText.textContent = "✅ Concluído!";
-          console.log("✅ Upload e criação de vídeo concluídos com sucesso!");
-          const blob = new Blob([xhr.response], { type: "video/mp4" });
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "video_final.mp4";
-          a.click();
-        } else if (xhr.readyState === 4 && xhr.status !== 200) {
-          progressText.textContent = "❌ Erro ao criar vídeo..";
-          console.log("❌ Erro no servidor:", xhr.status, xhr.responseText);
-        }
-      };
-      xhr.open("POST", "/create_video", true);
-      xhr.responseType = "blob";
-      console.log("🚀 Enviando dados para /create_video");
-      xhr.send(formData);
-    });
-  </script>
 
+        async function uploadFileToGCS(file, signedUrl) {
+            console.log(`☁️ Fazendo upload direto para GCS: ${file.name}`);
+            const response = await fetch(signedUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erro no upload: ${response.status} ${response.statusText}`);
+            }
+            
+            console.log(`✅ Upload concluído: ${file.name}`);
+        }
+
+        async function createVideo(imageBlobNames, audioBlobName, greenDuration) {
+            console.log('🎬 Chamando endpoint /create_video...');
+            const response = await fetch('/create_video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image_files: imageBlobNames,
+                    audio_file: audioBlobName,
+                    green_duration: greenDuration
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Erro ao criar vídeo');
+            }
+            
+            return response;
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('🚀 Iniciando processo de criação de vídeo...');
+            
+            const imageFiles = imageInput.files;
+            const audioFile = audioInput.files[0];
+            const greenDuration = parseInt(document.getElementById('greenDuration').value);
+            
+            if (imageFiles.length === 0 || !audioFile) {
+                showMessage('❌ Por favor, selecione imagens e áudio.', 'error');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            messageDiv.innerHTML = '';
+            
+            try {
+                const totalFiles = imageFiles.length + 1;
+                let uploadedFiles = 0;
+                
+                // Upload das imagens
+                const imageBlobNames = [];
+                updateProgress(0, 'Obtendo URLs para imagens...');
+                
+                for (let i = 0; i < imageFiles.length; i++) {
+                    const file = imageFiles[i];
+                    console.log(`📸 Processando imagem ${i + 1}/${imageFiles.length}: ${file.name}`);
+                    
+                    // Obter signed URL
+                    const urlData = await getSignedUrl(file.name, 'image');
+                    
+                    // Upload direto para GCS
+                    await uploadFileToGCS(file, urlData.signed_url);
+                    imageBlobNames.push(urlData.blob_name);
+                    
+                    uploadedFiles++;
+                    updateProgress((uploadedFiles / totalFiles) * 80, `Imagem ${i + 1}/${imageFiles.length} enviada`);
+                }
+                
+                // Upload do áudio
+                console.log(`🎵 Processando áudio: ${audioFile.name}`);
+                updateProgress(80, 'Obtendo URL para áudio...');
+                
+                const audioUrlData = await getSignedUrl(audioFile.name, 'audio');
+                await uploadFileToGCS(audioFile, audioUrlData.signed_url);
+                const audioBlobName = audioUrlData.blob_name;
+                
+                updateProgress(90, 'Criando vídeo...');
+                
+                // Criar vídeo
+                const videoResponse = await createVideo(imageBlobNames, audioBlobName, greenDuration);
+                
+                updateProgress(100, 'Vídeo criado com sucesso!');
+                
+                // Download do vídeo
+                const blob = await videoResponse.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `video_${Date.now()}.mp4`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                console.log('✅ Processo concluído com sucesso!');
+                showMessage('✅ Vídeo criado e baixado com sucesso!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                showMessage(`❌ Erro: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 3000);
+            }
+        });
+
+        function updateProgress(percent, text) {
+            progressFill.style.width = percent + '%';
+            progressText.textContent = text;
+        }
+
+        function showMessage(message, type) {
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+    </script>
 </body>
 </html>
