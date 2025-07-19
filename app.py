@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, jsonify, Response
+from flask import Flask, request, send_file, jsonify, Response, abort
 from google.cloud import storage
 from core.ffmpeg_processor import generate_final_video
 import os
@@ -39,6 +39,9 @@ def handle_exception(e):
 
 
 BUCKET_NAME = "dark_storage"
+
+def generate_download_url(blob, expires=3600):
+    return blob.generate_signed_url(expiration=expires)
 
 def allowed_file(filename, file_type):
     if file_type == "image":
@@ -239,15 +242,21 @@ def process_video(data, session_id, progress_callback):
             
             # Upload do vídeo para o bucket
             logger.info("☁️ Fazendo upload do vídeo para o bucket...")
-            video_blob_name = f"videos/{output_filename}"
-            download_url = upload_video_to_bucket(BUCKET_NAME, output_path, video_blob_name)
+            video_blob_name = f"videos/{session_id}.mp4"
+            client = storage.Client()
+            bucket = client.bucket(BUCKET_NAME)
+            blob = bucket.blob(video_blob_name)
+            blob.upload_from_filename(output_path)
+            
+            # dentro da função que roda em background:
+            signed_url = generate_download_url(blob)
             
             logger.info(f"✅ Vídeo criado e enviado para o bucket com sucesso!")
             progress_data[session_id] = {
-                'status': 'completed',
+                'status': 'done',
                 'progress': 100,
                 'message': 'Video created successfully!',
-                'download_url': download_url,
+                'download_url': signed_url,
                 'filename': output_filename,
                 'completed': True
             }
@@ -276,6 +285,41 @@ def favicon():
 def vite_client():
     """Handle Vite client requests to prevent 404 errors"""
     return '', 204
+
+@app.route("/download/<session_id>", methods=["GET"])
+def download_video(session_id):
+    blob_path = f"videos/{session_id}.mp4"
+    client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
+
+    # 1) Liste blobs no prefixo, só pra conferência
+    try:
+        # Atenção: list_blobs faz chamadas paginadas, aqui pegamos só os primeiros 100
+        names = [b.name for b in bucket.list_blobs(prefix="videos/")]
+        app.logger.info(f"Blobs em videos/: {names}")
+    except Exception as e:
+        app.logger.error(f"Erro listando blobs: {e}", exc_info=True)
+    
+    # 2) Tente buscar o blob
+    try:
+        blob = bucket.get_blob(blob_path)
+    except Exception as e:
+        app.logger.error(f"Erro get_blob para {blob_path}: {e}", exc_info=True)
+        abort(500, description="Erro acessando o Storage")
+
+    if blob is None:
+        app.logger.info(f"Blob não encontrado: {blob_path}")
+        abort(404, description="Vídeo não encontrado no bucket")
+
+    # 3) Gere a signed URL com try/except
+    try:
+        url = generate_download_url(blob)
+    except Exception as e:
+        app.logger.error(f"Erro gerando signed URL para {blob_path}: {e}", exc_info=True)
+        abort(500, description="Erro gerando signed URL")
+
+    app.logger.info(f"Signed URL gerada com sucesso para {blob_path}")
+    return jsonify({ "download_url": url })
 
 @app.route("/health")
 def health_check():
