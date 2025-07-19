@@ -1,5 +1,5 @@
-from flask import Flask, request, send_file, render_template_string
-from core.ffmpeg_processor import generate_final_video
+from flask import Flask, request, send_file, render_template
+from ffmpeg_processor import generate_final_video  # <-- CORRECTED IMPORT
 from werkzeug.utils import secure_filename
 from google.cloud import storage
 import tempfile
@@ -9,7 +9,15 @@ import uuid
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB upload limit
 
-BUCKET_NAME = "dark_storage"  # Bucket correto como você mostrou
+# It's good practice to create a 'templates' folder for your HTML files.
+# The following line assumes index.html is in a 'templates' folder.
+# If index.html is in the same folder as app.py, your original code will work,
+# but using a 'templates' folder is the standard for Flask.
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("index.html") # <-- MORE ROBUST WAY TO RENDER
+
+BUCKET_NAME = "dark_storage"
 
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
 ALLOWED_AUDIO_EXTENSIONS = {'.mp3'}
@@ -29,11 +37,6 @@ def download_from_bucket(bucket_name, blob_name, destination_file):
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
     blob.download_to_filename(destination_file)
-
-@app.route("/", methods=["GET"])
-def index():
-    with open("index.html") as f:
-        return render_template_string(f.read())
 
 @app.route("/create_video", methods=["POST"])
 def create_video():
