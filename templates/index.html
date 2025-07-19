@@ -250,6 +250,7 @@
       document.getElementById('uploadStats').textContent = '';
 
       try {
+        const imageInput = document.getElementById('imageFiles');
         const files = Array.from(imageInput.files)
                    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
