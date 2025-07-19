@@ -124,7 +124,8 @@
 
     <div class="container">
         <h1>DarkNews Creator <span class="glow">💎</span></h1>
-        <form id="videoForm">
+        <form id="videoForm" action="/create_video" method="POST" enctype="multipart/form-data">
+
             <label>Select Images:</label>
             <input type="file" name="images" multiple>
 
