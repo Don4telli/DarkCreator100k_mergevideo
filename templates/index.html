@@ -115,11 +115,20 @@
     progress::-webkit-progress-value {
       background-color: #ff4d00;
     }
+    progress.video-processing::-webkit-progress-value {
+      background-color: #007bff;
+    }
     #progressText {
       margin-top: 8px;
       font-size: 14px;
       text-align: center;
       color: #ccc;
+    }
+    #uploadStats {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
     }
   </style>
 </head>
@@ -159,6 +168,7 @@
       <div id="progressContainer">
         <progress id="progressBar" value="0" max="100"></progress>
         <div id="progressText">Uploading...</div>
+        <div id="uploadStats"></div>
       </div>
     </form>
   </div>
@@ -180,22 +190,41 @@
       return res.json();
     }
 
+    // Upload tracking
+    let uploadProgress = {};
+    let totalFiles = 0;
+    let completedUploads = 0;
+
+    function updateUploadProgress() {
+      const totalProgress = Object.values(uploadProgress).reduce((sum, progress) => sum + progress, 0);
+      const avgProgress = totalFiles > 0 ? totalProgress / totalFiles : 0;
+      progressBar.value = avgProgress;
+      progressText.textContent = `Uploading files: ${completedUploads}/${totalFiles} completed`;
+      document.getElementById('uploadStats').textContent = `${Math.round(avgProgress)}% - Processing ${Object.keys(uploadProgress).length} files simultaneously`;
+    }
+
     // Faz upload via PUT com progresso
-    async function uploadFile(file, signedUrl) {
+    async function uploadFile(file, signedUrl, fileIndex) {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
+        uploadProgress[fileIndex] = 0;
+        
         xhr.upload.addEventListener('progress', e => {
           if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 50); // up to 50%
-            progressBar.value = pct;
-            progressText.textContent = `Uploading ${file.name}: ${pct}%`;
+            uploadProgress[fileIndex] = (e.loaded / e.total) * 100;
+            updateUploadProgress();
           }
         });
+        
         xhr.onreadystatechange = () => {
           if (xhr.readyState === 4) {
             if (xhr.status >= 200 && xhr.status < 300) {
+              completedUploads++;
+              uploadProgress[fileIndex] = 100;
+              updateUploadProgress();
               resolve();
             } else {
+              delete uploadProgress[fileIndex];
               reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
             }
           }
@@ -211,35 +240,61 @@
       form.querySelector('button[type="submit"]').disabled = true;
       progressContainer.style.display = 'block';
       progressBar.value = 0;
-      progressText.textContent = 'Starting uploads…';
+      progressBar.classList.remove('video-processing');
+      
+      // Reset tracking variables
+      uploadProgress = {};
+      completedUploads = 0;
+      
+      progressText.textContent = 'Preparing uploads…';
+      document.getElementById('uploadStats').textContent = '';
 
       try {
         const files = Array.from(document.getElementById('imageFiles').files);
         const audioFile = document.getElementById('audioFile').files[0];
-        const totalCount = files.length + (audioFile ? 1 : 0);
-        let done = 0;
+        totalFiles = files.length + (audioFile ? 1 : 0);
+        
+        progressText.textContent = `Starting upload of ${totalFiles} files…`;
+        
+        // 1) Upload images in parallel (max 20 concurrent)
         const uploadedNames = [];
-
-        // 1) Upload images
-        for (let file of files) {
-          const { signed_url, filename } = await getSignedUrl(file.name, 'image');
-          await uploadFile(file, signed_url);
-          uploadedNames.push(filename);
-          done++;
+        const batchSize = 20;
+        
+        for (let i = 0; i < files.length; i += batchSize) {
+          const batch = files.slice(i, i + batchSize);
+          const batchPromises = batch.map(async (file, batchIndex) => {
+            const fileIndex = i + batchIndex;
+            const { signed_url, filename } = await getSignedUrl(file.name, 'image');
+            await uploadFile(file, signed_url, fileIndex);
+            return filename;
+          });
+          
+          const batchResults = await Promise.all(batchPromises);
+          uploadedNames.push(...batchResults);
         }
 
         // 2) Upload audio if present
         let audioName = null;
         if (audioFile) {
           const { signed_url, filename } = await getSignedUrl(audioFile.name, 'audio');
-          await uploadFile(audioFile, signed_url);
+          await uploadFile(audioFile, signed_url, files.length);
           audioName = filename;
-          done++;
         }
 
-        // 3) Call create_video
-        progressBar.value = 60;
-        progressText.textContent = 'Creating video…';
+        // All uploads complete - show 100%
+        progressBar.value = 100;
+        progressText.textContent = '✅ All files uploaded successfully!';
+        document.getElementById('uploadStats').textContent = `${totalFiles} files uploaded`;
+        
+        // Wait a moment to show completion
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 3) Start video processing - reset progress bar with blue color
+        progressBar.value = 0;
+        progressBar.classList.add('video-processing');
+        progressText.textContent = '🎬 Starting video creation…';
+        document.getElementById('uploadStats').textContent = 'Processing images and audio';
+        
         const payload = {
           image_filenames: uploadedNames,
           audio_filename: audioName,
@@ -247,27 +302,81 @@
           aspect_ratio: form.elements['aspect_ratio'].value,
           green_duration: parseFloat(form.elements['green_duration'].value)
         };
+        
+        // Start video creation with real-time progress tracking
         const createRes = await fetch('/create_video', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        
         if (!createRes.ok) throw new Error(`Create video failed: ${createRes.status}`);
-        const { download_url } = await createRes.json();
-
-        // 4) Finish
-        progressBar.value = 100;
-        progressText.textContent = 'Done! Downloading…';
-        // trigger download
-        const a = document.createElement('a');
-        a.href = download_url;
-        a.download = payload.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        const { session_id } = await createRes.json();
+        
+        // Connect to progress stream
+        const eventSource = new EventSource(`/progress/${session_id}`);
+        let download_url = null;
+        
+        eventSource.onmessage = function(event) {
+          const data = JSON.parse(event.data);
+          
+          if (data.status === 'downloading') {
+            progressBar.value = data.progress;
+            progressText.textContent = `📥 ${data.message}`;
+            document.getElementById('uploadStats').textContent = 'Downloading images from cloud storage';
+          } else if (data.status === 'processing') {
+            progressBar.value = 20 + (data.progress * 0.6); // Scale to 20-80% range
+            progressText.textContent = `🎬 ${data.message}`;
+            document.getElementById('uploadStats').textContent = `Processing group ${data.current + 1}/${data.total}`;
+          } else if (data.status === 'uploading') {
+            progressBar.value = data.progress;
+            progressText.textContent = `☁️ ${data.message}`;
+            document.getElementById('uploadStats').textContent = 'Uploading final video to cloud';
+          } else if (data.status === 'completed') {
+            progressBar.value = 100;
+            progressText.textContent = '✅ Video created successfully!';
+            document.getElementById('uploadStats').textContent = 'Ready for download';
+            download_url = data.download_url;
+            eventSource.close();
+            
+            // Trigger download
+            const a = document.createElement('a');
+            a.href = download_url;
+            a.download = data.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            progressText.textContent = '✅ Download started!';
+          } else if (data.status === 'error') {
+            progressText.textContent = '❌ Error occurred';
+            document.getElementById('uploadStats').textContent = data.message;
+            eventSource.close();
+            throw new Error(data.message);
+          }
+        };
+        
+        eventSource.onerror = function() {
+          eventSource.close();
+          throw new Error('Connection to progress stream failed');
+        };
+        
+        // Wait for completion
+         await new Promise((resolve, reject) => {
+           const checkCompletion = () => {
+             if (download_url) {
+               resolve();
+             } else {
+               setTimeout(checkCompletion, 100);
+             }
+           };
+           checkCompletion();
+         });
+        
       } catch (err) {
         console.error(err);
-        progressText.textContent = '❌ Error';
+        progressText.textContent = '❌ Error occurred';
+        document.getElementById('uploadStats').textContent = err.message;
         alert(`Error: ${err.message}`);
       } finally {
         form.querySelector('button[type="submit"]').disabled = false;

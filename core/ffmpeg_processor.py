@@ -127,7 +127,7 @@ def create_green_clip(output_path: str, duration: int = 3, resolution=(1080, 192
         raise
 
 
-def generate_final_video(image_paths: List[str], audio_path: str, output_path: str, green_duration: float = 3.0, aspect_ratio: str = "9:16"):
+def generate_final_video(image_paths: List[str], audio_path: str, output_path: str, green_duration: float = 3.0, aspect_ratio: str = "9:16", progress_callback=None):
     logger.info("🛠 Gerando vídeo final...")
     
     # Determinar resolução baseada no aspect ratio
@@ -146,12 +146,20 @@ def generate_final_video(image_paths: List[str], audio_path: str, output_path: s
     has_audio = audio_path is not None
     logger.info(f"🎵 Áudio presente: {has_audio}")
     
+    total_groups = len(groups)
+    
     with tempfile.TemporaryDirectory() as tmpdir:
         part_videos = []
         green_clip_path = os.path.join(tmpdir, "green.mp4")
+        
+        if progress_callback:
+            progress_callback("Creating green screen clips", 0, total_groups)
         create_green_clip(green_clip_path, duration=int(green_duration), resolution=resolution, with_audio=has_audio)
         
-        for prefix, images in sorted(groups.items()):
+        for i, (prefix, images) in enumerate(sorted(groups.items())):
+            if progress_callback:
+                progress_callback(f"Processing video group {prefix}", i, total_groups)
+            
             logger.info(f"📽 Criando parte do vídeo para prefixo {prefix} com {len(images)} imagens...")
             video_part_path = os.path.join(tmpdir, f"{prefix}.mp4")
             create_video_from_images_and_audio(images, audio_path, video_part_path)
@@ -161,6 +169,9 @@ def generate_final_video(image_paths: List[str], audio_path: str, output_path: s
         
         if part_videos and part_videos[-1] == green_clip_path:
             part_videos.pop()  # remove tela verde do final
+        
+        if progress_callback:
+            progress_callback("Concatenating video segments", total_groups, total_groups)
         
         concat_list = os.path.join(tmpdir, "concat.txt")
         with open(concat_list, "w") as f:
