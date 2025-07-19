@@ -1,24 +1,43 @@
 steps:
+# 1) Build the Docker image, tagging with commit SHA for immutability
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/dark-creator-video-app/darkcreator100k-mergevideo', '.']
+  args:
+    - 'build'
+    - '-t'
+    - 'gcr.io/$PROJECT_ID/darkcreator100k-mergevideo:$SHORT_SHA'
+    - '.'
 
+# 2) Push the newly built image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - 'push'
+    - 'gcr.io/$PROJECT_ID/darkcreator100k-mergevideo:$SHORT_SHA'
+
+# 3) Deploy that exact image to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
-  args: [
-    'run', 'deploy', 'darkcreator100k-mergevideo',
-    '--image', 'gcr.io/dark-creator-video-app/darkcreator100k-mergevideo',
-    '--region', 'southamerica-east1',
-    '--platform', 'managed',
-    '--allow-unauthenticated',
-    '--timeout', '3600',
-    '--memory', '4Gi',
-    '--cpu', '2',
-    '--max-instances', '10',
-    '--concurrency', '1'
-  ]
+  args:
+    - 'run'
+    - 'deploy'
+    - 'darkcreator100k-mergevideo'
+    - '--image'
+    - 'gcr.io/$PROJECT_ID/darkcreator100k-mergevideo:$SHORT_SHA'
+    - '--region'
+    - 'southamerica-east1'
+    - '--platform'
+    - 'managed'
+    - '--allow-unauthenticated'
+    - '--timeout'
+    - '3600'
+    - '--memory'
+    - '4Gi'
+    - '--cpu'
+    - '2'
+    - '--max-instances'
+    - '10'
+    - '--concurrency'
+    - '1'
 
+# Let Cloud Build know which images to push (optional, since we do it manually)
 images:
-- 'gcr.io/dark-creator-video-app/darkcreator100k-mergevideo'
-
-options:
-  logging: CLOUD_LOGGING_ONLY
+  - 'gcr.io/$PROJECT_ID/darkcreator100k-mergevideo:$SHORT_SHA'
