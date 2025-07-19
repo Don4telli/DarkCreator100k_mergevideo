@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://darkcreator100k-mergevideo-998923445962.southamerica-east1.run.app"],
+    "method": ["PUT", "GET", "HEAD", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
+    "maxAgeSeconds": 3600
+  }
+]

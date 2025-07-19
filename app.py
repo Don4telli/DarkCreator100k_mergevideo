@@ -7,9 +7,19 @@ import uuid
 import logging
 from flask import jsonify
 from datetime import datetime, timedelta
+from flask_cors import CORS
+
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024  # 512MB
+
+# Permite CORS só para o POST /get_signed_url vindo do seu serviço Cloud Run
+CORS(app, resources={
+    r"/get_signed_url": {
+        "origins": "https://darkcreator100k-mergevideo-998923445962.southamerica-east1.run.app",
+        "methods": ["POST", "OPTIONS"]
+    }
+})
 
 @app.errorhandler(413)
 def too_large(e):
@@ -22,7 +32,7 @@ def handle_exception(e):
 
 
 
-BUCKET_NAME = "darkcreator100k-mergevideo"
+BUCKET_NAME = "dark_storage"
 
 def allowed_file(filename, file_type):
     if file_type == "image":
@@ -52,12 +62,12 @@ def get_signed_url():
             logger.info(f"❌ Tipo de arquivo não permitido: {filename}")
             return jsonify(error="Tipo de arquivo não permitido"), 400
         
-        # Gerar nome único para o arquivo
-        unique_filename = f"{uuid.uuid4()}_{filename}"
+       # Manter exatamente o nome original
+        object_name = filename
         
         client = storage.Client()
         bucket = client.bucket(BUCKET_NAME)
-        blob = bucket.blob(unique_filename)
+        blob = bucket.blob(object_name)
         
         # Gerar signed URL para upload (válida por 1 hora)
         signed_url = blob.generate_signed_url(
@@ -66,10 +76,10 @@ def get_signed_url():
             method="PUT"
         )
         
-        logger.info(f"✅ Signed URL gerada para: {unique_filename}")
+        logger.info(f"✅ Signed URL gerada para: {object_name}")
         return jsonify({
             'signed_url': signed_url,
-            'filename': unique_filename
+            'filename': object_name
         })
         
     except Exception as e:
