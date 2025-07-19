@@ -158,6 +158,14 @@ def create_video():
     logger.info(f"📋 Headers da requisição: {dict(request.headers)}")
     logger.info(f"🔍 Método da requisição: {request.method}")
     
+    # Get request data before starting thread
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Dados JSON são obrigatórios'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Erro ao processar JSON: {str(e)}'}), 400
+    
     # Generate unique session ID for progress tracking
     session_id = str(uuid.uuid4())
     progress_data[session_id] = {'status': 'starting', 'progress': 0, 'message': 'Initializing...'}
@@ -172,19 +180,15 @@ def create_video():
             'total': total
         }
     
-    def process_video():
+    def process_video(request_data):
         try:
-            data = request.get_json()
-            if not data:
-                progress_data[session_id] = {'status': 'error', 'message': 'Dados JSON são obrigatórios'}
-                return
             
             # Verificar se os nomes dos arquivos foram fornecidos
-            image_filenames = data.get('image_filenames', [])
-            audio_filename = data.get('audio_filename')
-            filename = data.get('filename', 'my_video.mp4')
-            aspect_ratio = data.get('aspect_ratio', '9:16')
-            green_duration = float(data.get('green_duration', 5.0))
+            image_filenames = request_data.get('image_filenames', [])
+            audio_filename = request_data.get('audio_filename')
+            filename = request_data.get('filename', 'my_video.mp4')
+            aspect_ratio = request_data.get('aspect_ratio', '9:16')
+            green_duration = float(request_data.get('green_duration', 5.0))
             
             if not image_filenames:
                 progress_data[session_id] = {'status': 'error', 'message': 'image_filenames é obrigatório'}
@@ -247,7 +251,7 @@ def create_video():
             }
     
     # Start video processing in background thread
-    thread = threading.Thread(target=process_video)
+    thread = threading.Thread(target=process_video, args=(data,))
     thread.start()
     
     return jsonify({

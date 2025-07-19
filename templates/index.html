@@ -304,9 +304,11 @@
         const uploadResults = await Promise.all(uploadPromises);
         uploadedNames.push(...uploadResults);
 
-        // 2) Upload audio if present
+        // 2) Upload audio if present (after all images are uploaded)
         let audioName = null;
         if (audioFile) {
+          progressText.textContent = 'Uploading audio file...';
+          document.getElementById('uploadStats').textContent = 'Processing audio upload';
           const { signed_url, filename } = await getSignedUrl(audioFile.name, 'audio');
           await uploadFile(audioFile, signed_url, files.length);
           audioName = filename;
@@ -370,15 +372,25 @@
             download_url = data.download_url;
             eventSource.close();
             
-            // Trigger download
-            const a = document.createElement('a');
-            a.href = download_url;
-            a.download = data.filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            // Show download button instead of auto-download
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = '📥 Download Video';
+            downloadBtn.style.cssText = 'margin: 10px 0; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;';
+            downloadBtn.onclick = () => {
+              const a = document.createElement('a');
+              a.href = download_url;
+              a.download = data.filename;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              downloadBtn.textContent = '✅ Download started!';
+              downloadBtn.disabled = true;
+            };
             
-            progressText.textContent = '✅ Download started!';
+            // Insert download button after progress container
+            progressContainer.parentNode.insertBefore(downloadBtn, progressContainer.nextSibling);
+            
+            progressText.textContent = '✅ Video ready! Click button to download.';
           } else if (data.status === 'error') {
             progressText.textContent = '❌ Error occurred';
             document.getElementById('uploadStats').textContent = data.message;
