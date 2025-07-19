@@ -185,28 +185,26 @@
     const progressBar = document.getElementById("progressBar");
     const progressContainer = document.getElementById("progressContainer");
     const progressText = document.getElementById("progressText");
-
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-
+      console.log("📤 Iniciando submissão do formulário...");
       const formData = new FormData(form);
       const xhr = new XMLHttpRequest();
-
       progressContainer.style.display = "block";
       progressBar.value = 0;
       progressText.textContent = "Enviando...";
-
       xhr.upload.addEventListener("progress", function (e) {
         if (e.lengthComputable) {
           const percent = Math.round((e.loaded / e.total) * 100);
           progressBar.value = percent;
           progressText.textContent = `Upload: ${percent}%`;
+          console.log(`📊 Progresso de upload: ${percent}%`);
         }
       });
-
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
           progressText.textContent = "✅ Concluído!";
+          console.log("✅ Upload e criação de vídeo concluídos com sucesso!");
           const blob = new Blob([xhr.response], { type: "video/mp4" });
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -215,11 +213,12 @@
           a.click();
         } else if (xhr.readyState === 4 && xhr.status !== 200) {
           progressText.textContent = "❌ Erro ao criar vídeo..";
+          console.log("❌ Erro no servidor:", xhr.status, xhr.responseText);
         }
       };
-
       xhr.open("POST", "/create_video", true);
       xhr.responseType = "blob";
+      console.log("🚀 Enviando dados para /create_video");
       xhr.send(formData);
     });
   </script>
