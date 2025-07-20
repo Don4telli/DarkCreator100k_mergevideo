@@ -7,6 +7,7 @@ from typing import List
 from pathlib import Path
 from collections import defaultdict
 import logging
+import shutil
 
 tmp_dir = "/tmp"
 input_txt_path = os.path.join(tmp_dir, "input.txt")
