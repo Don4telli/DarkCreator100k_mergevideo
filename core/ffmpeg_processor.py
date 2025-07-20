@@ -130,9 +130,12 @@ def generate_final_video(image_groups,
         blk = os.path.join(tmpd, f"{pref}.mp4")
         _make_block(imgs, audio_path, blk, res)
         parts.append(blk)
+        # dentro de generate_final_video, logo após criar part_path …
         if i != total:
-            g = os.path.join(tmpd, f"green_{i}.mp4")
-            _green(green_sec, g, res)
+            green = os.path.join(tmpd, f"green_{i}.mp4")
+            _green(green, green_sec, res)     # ← ordem correta
+            parts.append(green)
+
 
     progress_cb(90)
 
