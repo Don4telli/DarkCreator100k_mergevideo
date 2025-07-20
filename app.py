@@ -40,15 +40,23 @@ def handle_exception(e):
 logger       = logging.getLogger(__name__)
 BUCKET_NAME  = os.environ.get("BUCKET_NAME", "dark_storage")
 
-def generate_download_url(blob, expires=3600):
+def generate_download_url(blob, expires=3600, disposition: str | None = None):
     """
-    Gera uma signed URL V4 válida por `expires` segundos (padrão: 3600s = 1h).
+    Devolve uma signed-URL v4 para download.
+
+      • expires .......... segundos de validade (padrão 1 h)  
+      • disposition ...... cabeçalho Content-Disposition opcional
+                           ex.: 'attachment; filename="meu_video.mp4"'
     """
-    return blob.generate_signed_url(
+    kwargs = dict(
         version="v4",
-        expiration=expires,   # agora é um inteiro de segundos
+        expiration=expires,
         method="GET"
     )
+    if disposition:
+        kwargs["response_disposition"] = disposition
+    return blob.generate_signed_url(**kwargs)
+
 
 
 def allowed_file(filename, file_type):
@@ -144,7 +152,9 @@ def upload_video_to_bucket(bucket_name, local_file_path, destination_blob_name):
         download_url = blob.generate_signed_url(
             version="v4",
             expiration=datetime.now(timezone.utc) + timedelta(hours=24),
-            method="GET"
+            response_disposition = (
+                f'attachment; filename="{os.path.basename(destination_blob_name)}"'
+            )
         )
         
         return download_url
@@ -218,32 +228,6 @@ def create_video():
         'message': 'Video processing started'
     }), 202
 
-def progress_callback(percent: int) -> None:
-    """
-        Atualiza o progresso do job (0-100).
-
-        Chamado de dentro de core/ffmpeg_processor.generate_final_video().
-        """
-    progress_data[session_id]['progress'] = percent
-
-    progress_data[session_id] = {
-            'status': 'processing',
-            'progress': progress_percent,
-            'message': message,
-            'current': current,
-            'total': total
-    }    
-    
-    # Start video processing in background thread
-    thread = threading.Thread(target=process_video,
-                              args=(data, session_id))
-    thread.start()
-    
-    return jsonify({
-        'session_id': session_id,
-        'message': 'Video processing started'
-    })
-
 def process_video(data, session_id):
     """
     Executa o pipeline:
@@ -300,9 +284,10 @@ def process_video(data, session_id):
             blob       = bucket.blob(blob_final)
             blob.upload_from_filename(out_path)
             signed_url = blob.generate_signed_url(
-                expiration=timedelta(hours=1),  # válido por 1 h
-                version="v4"
-            )
+            version="v4",
+            expiration=timedelta(hours=1),
+            response_disposition=f'attachment; filename="{out_name}"'   # ← download forçado
+        )   
 
         # ── sucesso ──────────────────────────────────────────────────
         progress_callback(100)                   # → 100 %
@@ -320,7 +305,6 @@ def process_video(data, session_id):
         progress_data[session_id] = {
             'status': 'error', 'message': str(e), 'completed': True
         }
-
 
 @app.route("/")
 def index():
@@ -352,7 +336,11 @@ def download_video(session_id):
             app.logger.info(f"Blob não encontrado: {blob_path}")
             abort(404, description="Vídeo não encontrado no bucket")
         
-        url = generate_download_url(blob)
+        url = generate_download_url(
+            blob,
+            expires=3600,   # 1 h de validade
+            disposition=f'attachment; filename="{os.path.basename(blob.name)}"'
+        )
         app.logger.info(f"Signed URL gerada com sucesso para {blob_path}")
         return jsonify({ "download_url": url })
         

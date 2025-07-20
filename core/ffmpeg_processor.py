@@ -29,7 +29,15 @@ def _audio_duration(path: str) -> float:
     return float(json.loads(out)["format"]["duration"])
 
 def _resolution(ratio: str) -> Tuple[int, int]:
-    return (1080, 1920) if ratio == "9:16" else (1920, 1080)
+    """Converte razão → (W,H). Aceita '9:16', '9x16', 'portrait'."""
+    r = ratio.replace('x', ':').lower()
+    if r in ('9:16', 'portrait'):
+        return (1080, 1920)       # 9 : 16
+    elif r in ('16:9', 'landscape'):
+        return (1920, 1080)       # 16 : 9
+    else:                         # fallback: mantém original
+        return (1920, 1080)
+
 
 def group_images_by_prefix(imgs: List[str]):
     g = defaultdict(list)
