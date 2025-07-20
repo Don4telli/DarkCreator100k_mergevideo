@@ -198,7 +198,7 @@ def process_video(data, session_id):
             generate_final_video(
                 groups, audio_path, out_path,
                 green_sec, aspect_ratio.replace(':', 'x'),
-                lambda p: cb(p, "processing", "Renderizando vídeo…")
+                cb
             )
 
             # 90 % — upload
