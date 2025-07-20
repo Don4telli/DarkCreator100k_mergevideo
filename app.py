@@ -217,7 +217,7 @@ def create_video():
         'session_id': session_id,
         'message': 'Video processing started'
     }), 202
-       
+
 def progress_callback(percent: int) -> None:
     """
         Atualiza o progresso do job (0-100).
@@ -299,7 +299,10 @@ def process_video(data, session_id):
             blob_final = f'videos/{session_id}.mp4'
             blob       = bucket.blob(blob_final)
             blob.upload_from_filename(out_path)
-            signed_url = blob.generate_signed_url(3600)
+            signed_url = blob.generate_signed_url(
+                expiration=datetime.timedelta(hours=1),  # válido por 1 h
+                version="v4"
+            )
 
         # ── sucesso ──────────────────────────────────────────────────
         progress_callback(100)                   # → 100 %
