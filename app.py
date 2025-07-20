@@ -225,7 +225,7 @@ def create_video():
     # ── 3. Resposta imediata ─────────────────────────────────────────────────
     return jsonify({
         'session_id': session_id,
-        'message': 'Video processing started'
+        'message': 'Processo do video iniciado'
     }), 202
 
 def process_video(data, session_id):
@@ -235,8 +235,11 @@ def process_video(data, session_id):
     Atualiza progress_data[session_id] a cada etapa.
     """
     # ── callback usado pelo ffmpeg_processor ──────────────────────────
-    def progress_callback(percent: int) -> None:
-        progress_data[session_id]['progress'] = percent
+    def progress_callback(percent: int, phase: str = 'processando') -> None:
+        progress_data[session_id].update({
+            'status':   phase,               # 'processando'  ou  'uploading'
+            'progress': int(percent)
+        })
 
     try:
         # ── 0. parâmetros vindos do front-end ─────────────────────────
@@ -265,7 +268,7 @@ def process_video(data, session_id):
                 audio_path = os.path.join(tmp, 'audio.mp3')
                 bucket.blob(audio).download_to_filename(audio_path)
 
-            progress_callback(20)                 # → 20 %
+            progress_callback(20, 'processando')                # → 20 %
 
             # ── 2. gerar vídeo ────────────────────────────────────────
             groups   = group_images_by_prefix(image_paths)
@@ -275,9 +278,9 @@ def process_video(data, session_id):
             generate_final_video(
                 groups, audio_path, out_path,
                 green_seconds, aspect_ratio.replace(':', 'x'),
-                progress_callback
+                lambda p: progress_callback(p, 'processando')
             )
-            progress_callback(90)                 # → 90 %
+            progress_callback(90, 'processando')                 # → 90 %
 
             # ── 3. upload + URL ───────────────────────────────────────
             blob_final = f'videos/{session_id}.mp4'
@@ -290,7 +293,7 @@ def process_video(data, session_id):
         )   
 
         # ── sucesso ──────────────────────────────────────────────────
-        progress_callback(100)                   # → 100 %
+        progress_callback(100, 'completo')                   # → 100 %
         progress_data[session_id].update({
             'status':       'completed',
             'message':      'Video ready!',
