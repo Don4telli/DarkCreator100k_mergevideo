@@ -1,9 +1,9 @@
-# app_local_test.py  ───────────────────────────────────────────────────────────
+# app_local.py  ───────────────────────────────────────────────────────────
 # Versão local completa com todas as funcionalidades do app.py online
 # mas usando armazenamento local em vez do Google Cloud Storage
 from flask import (
     Flask, request, send_file, jsonify,
-    Response, abort, send_from_directory, make_response
+    Response, abort, send_from_directory
 )
 from werkzeug.exceptions import HTTPException
 from core.ffmpeg_processor import generate_final_video, group_images_by_prefix
@@ -58,8 +58,6 @@ VIDEOS_DIR = os.path.join(LOCAL_STORAGE_DIR, "videos")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(VIDEOS_DIR, exist_ok=True)
 
-BUCKET_NAME = "darkcreator100k-mergevideo"
-
 # ───────────────────────── UTILITÁRIOS DE STORAGE ────────────────────────
 def allowed_file(fname, typ):
     exts = {
@@ -72,10 +70,7 @@ def generate_local_signed_url(filename):
     """Simula uma signed URL para upload local"""
     unique_filename = f"{uuid.uuid4()}_{filename}"
     # Retorna uma URL local que será interceptada pelo nosso endpoint
-    return f"http://localhost:8081/local_upload/{unique_filename}", unique_filename
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+    return f"http://localhost:8082/local_upload/{unique_filename}", unique_filename
 
 # ╭─────────────────────────── GET SIGNED URL ══════════════════════════════╮
 @app.route("/get_signed_url", methods=["POST"])
@@ -97,38 +92,21 @@ def get_signed_url():
 # ╰─────────────────────────────────────────────────────────────────────────╯
 
 # ╭─────────────────────────── UPLOAD LOCAL ════════════════════════════════╮
-@app.route("/local_upload/<filename>", methods=["PUT", "POST", "OPTIONS"])
+@app.route("/local_upload/<filename>", methods=["PUT"])
 def local_upload(filename):
     """Endpoint que simula o upload para GCS, mas salva localmente"""
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'PUT, POST, OPTIONS')
-        return response
-    
     try:
         file_data = request.get_data()
-        if not file_data:
-            logger.error("❌ Dados do arquivo vazios para: %s", filename)
-            return "Dados do arquivo vazios", 400
-            
         file_path = os.path.join(UPLOADS_DIR, filename)
         
         with open(file_path, 'wb') as f:
             f.write(file_data)
         
-        logger.info("✅ Arquivo salvo localmente: %s (%d bytes)", filename, len(file_data))
-        
-        response = make_response("", 200)
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
-        
+        logger.info("✅ Arquivo salvo localmente: %s", filename)
+        return "", 200
     except Exception as e:
         logger.error("❌ Erro no upload local: %s", str(e))
-        response = make_response(str(e), 500)
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
+        return str(e), 500
 # ╰─────────────────────────────────────────────────────────────────────────╯
 
 # ╭────────────────────────── SSE DE PROGRESSO ═════════════════════════════╮
@@ -190,68 +168,82 @@ def create_video():
                    message="Processo do vídeo iniciado (LOCAL)"), 202
 # ╰─────────────────────────────────────────────────────────────────────────╯
 
-# ╭─────────────────────── PROCESSAMENTO LOCAL ═════════════════════════════╮
+# ╭────────────────────────── PROCESSAMENTO LOCAL ══════════════════════════╮
 def process_video_local(data, session_id):
-    """Processa vídeo usando arquivos locais."""
+    def cb(pct: int, phase: str = "processing", msg: str | None = None):
+        _set_progress(session_id,
+                    status=phase,
+                    progress=int(pct),
+                    message=msg,
+                    completed=False)
+
     try:
-        _set_progress(session_id, status="processing", progress=10,
-                      message="Iniciando processamento...")
+        images       = data['image_filenames']
+        audio        = data.get('audio_filename')
+        filename     = data.get('filename', 'my_video.mp4')
+        aspect_ratio = data.get('aspect_ratio', '9:16')
+        green_sec    = float(data.get('green_duration', 3))
 
-        imgs = data['image_filenames']
-        aud = data.get('audio_filename')
-        fname = data.get('filename', 'video.mp4')
-        aspect = data.get('aspect_ratio', '9:16')
-        green_dur = float(data.get('green_duration', 5.0))
+        logger.info("📥 %d imagens; áudio: %s (LOCAL)", len(images), bool(audio))
+        _set_progress(session_id, status="downloading", progress=0)
 
-        # Verificar arquivos locais
-        _set_progress(session_id, progress=20, message="Verificando arquivos...")
-        img_paths = []
-        for img in imgs:
-            path = os.path.join(UPLOADS_DIR, img)
-            if not os.path.exists(path):
-                raise FileNotFoundError(f"Imagem não encontrada: {img}")
-            img_paths.append(path)
+        # ── 1. copiar arquivos locais ────────────────────────────────────
+        with tempfile.TemporaryDirectory() as tmp:
+            img_paths = []
+            for fname in images:
+                src = os.path.join(UPLOADS_DIR, fname)
+                if not os.path.exists(src):
+                    raise FileNotFoundError(f"Arquivo não encontrado: {fname}")
+                dst = os.path.join(tmp, os.path.basename(fname))
+                shutil.copy2(src, dst)
+                img_paths.append(dst)
 
-        aud_path = None
-        if aud:
-            aud_path = os.path.join(UPLOADS_DIR, aud)
-            if not os.path.exists(aud_path):
-                raise FileNotFoundError(f"Áudio não encontrado: {aud}")
+            audio_path = None
+            if audio:
+                audio_src = os.path.join(UPLOADS_DIR, audio)
+                if not os.path.exists(audio_src):
+                    raise FileNotFoundError(f"Áudio não encontrado: {audio}")
+                audio_path = os.path.join(tmp, 'audio.mp3')
+                shutil.copy2(audio_src, audio_path)
 
-        # Agrupar imagens
-        _set_progress(session_id, progress=30, message="Agrupando imagens...")
-        grouped = group_images_by_prefix(img_paths)
+            # 20 % — arquivos copiados
+            cb(20, "processing",
+                "Arquivos preparados — iniciando renderização…")
 
-        # Gerar vídeo
-        _set_progress(session_id, progress=50, message="Gerando vídeo...")
-        output_name = fname if fname.endswith('.mp4') else f"{fname}.mp4"
-        output_path = os.path.join(VIDEOS_DIR, output_name)
+            # ── 2. gerar vídeo ────────────────────────────────────────
+            groups   = group_images_by_prefix(img_paths)
+            out_name = filename if filename.endswith('.mp4') else f'{filename}.mp4'
+            out_path = os.path.join(tmp, out_name)
 
-        generate_final_video(
-            grouped_images=grouped,
-            audio_path=aud_path,
-            output_path=output_path,
-            aspect_ratio=aspect,
-            green_duration=green_dur
-        )
+            generate_final_video(
+                groups, audio_path, out_path,
+                green_sec, aspect_ratio.replace(':', 'x'),
+                cb
+            )
 
-        _set_progress(session_id, status="completed", progress=100,
-                      message="Vídeo criado com sucesso!",
-                      download_url=f"/download/{output_name}",
-                      filename=output_name, completed=True)
+            # 90 % — salvando vídeo
+            cb(90, "uploading", "Salvando vídeo…")
+
+            # Salvar vídeo final
+            final_video_path = os.path.join(VIDEOS_DIR, f'{session_id}.mp4')
+            shutil.copy2(out_path, final_video_path)
+
+            # URL de download local
+            download_url = f"http://localhost:8082/download/{session_id}"
+
+        _set_progress(session_id,
+                      status="completed",
+                      message="Video ready!",
+                      download_url=download_url,
+                      filename=out_name,
+                      progress=100,
+                      completed=True)
+        logger.info("🎉 Vídeo pronto (LOCAL): %s", download_url)
 
     except Exception as e:
-        logger.exception("Erro no processamento local")
-        _set_progress(session_id, status="error", message=str(e), completed=True)
-# ╰─────────────────────────────────────────────────────────────────────────╯
-
-# ╭──────────────────────────── DOWNLOAD ═══════════════════════════════════╮
-@app.route("/download/<filename>")
-def download_video(filename):
-    """Download de vídeo local."""
-    if '..' in filename or '/' in filename or '\\' in filename:
-        abort(400)
-    return send_from_directory(VIDEOS_DIR, filename, as_attachment=True)
+        logger.exception("❌ Erro no processamento (LOCAL)")
+        _set_progress(session_id,
+                      status="error", message=str(e), completed=True)
 # ╰─────────────────────────────────────────────────────────────────────────╯
 
 # ╭──────────────────────— ROTAS DE ARQUIVOS ESTÁTICOS —────────────────────╮
@@ -266,6 +258,19 @@ def favicon():                     return send_from_directory('static', 'favicon
 
 @app.route('/@vite/client')
 def vite_client():                 return '', 204
+# ╰─────────────────────────────────────────────────────────────────────────╯
+
+# ╭────────────────────────── DOWNLOAD DE VÍDEO ════════════════════════════╮
+@app.route("/download/<session_id>", methods=["GET"])
+def download_video(session_id):
+    video_path = os.path.join(VIDEOS_DIR, f"{session_id}.mp4")
+    if not os.path.exists(video_path):
+        abort(404, description="Vídeo não encontrado")
+    
+    return send_file(video_path, 
+                     as_attachment=True, 
+                     download_name=f"video_{session_id}.mp4",
+                     mimetype="video/mp4")
 # ╰─────────────────────────────────────────────────────────────────────────╯
 
 @app.route("/list_videos")
@@ -287,4 +292,4 @@ if __name__ == "__main__":
     print("🎬 Processamento real de vídeo com FFmpeg")
     print("📊 Server-Sent Events para progresso")
     print("=" * 50)
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8082, debug=True)

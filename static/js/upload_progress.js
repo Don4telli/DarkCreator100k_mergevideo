@@ -10,9 +10,23 @@ document.getElementById('videoForm').addEventListener('submit', async function (
   const audioInput = document.getElementById('audioFile');     // <input type="file" id="audioFile">
   const aspectRatio  = form.querySelector('[name="aspect_ratio"]').value;
   const greenDuration = parseFloat(form.querySelector('[name="green_duration"]').value) || 5;
+  
+  // Progress elements
+  const progressWrap = document.getElementById('progressContainer');
+  const bar = document.getElementById('progressBar');
+  const text = document.getElementById('progressText');
+  const downloadLink = document.getElementById('downloadLink');
+  
+  // Initialize progress
+  if (downloadLink) downloadLink.style.display = 'none';
+  if (bar) bar.value = 0;
+  if (progressWrap) progressWrap.style.display = 'block';
 
   const uploadedImageNames = [];
   let uploadedAudioName = null;
+  
+  const totalFiles = imageInput.files.length + (audioInput.files.length ? 1 : 0);
+  let doneFiles = 0;
 
   // Helper to upload one file via signed URL
   async function uploadFile(file, fileType) {
@@ -28,37 +42,20 @@ document.getElementById('videoForm').addEventListener('submit', async function (
     if (!res1.ok) throw new Error(`Error fetching signed URL: ${await res1.text()}`);
     const { signed_url, filename } = await res1.json();
 
-    // 2) build progress element
-    const p = document.createElement('div');
-    p.style.margin = '8px 0';
-    p.innerHTML = `<strong>Uploading ${filename}</strong><br>`;
-    const bar = document.createElement('progress');
-    bar.max = 100;
-    bar.value = 0;
-    bar.style.width = '100%';
-    p.appendChild(bar);
-    form.appendChild(p);
-
-    // 3) upload via PUT
-    const xhr = new XMLHttpRequest();
-    return new Promise((resolve, reject) => {
-      xhr.upload.addEventListener('progress', ev => {
-        if (ev.lengthComputable) bar.value = (ev.loaded / ev.total) * 100;
-      });
-      xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4) {
-          form.removeChild(p);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(filename);
-          } else {
-            reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
-          }
-        }
-      };
-      xhr.open('PUT', signed_url);
-      xhr.setRequestHeader('Content-Type', file.type);
-      xhr.send(file);
+    // 2) upload via PUT with fetch
+    await fetch(signed_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file
     });
+    
+    // Update global progress
+    doneFiles++;
+    const pct = Math.round((doneFiles / totalFiles) * 100);
+    if (bar) bar.value = pct;
+    if (text) text.textContent = `Uploading (${pct}%)`;
+    
+    return filename;
   }
 
   try {
@@ -116,9 +113,18 @@ document.getElementById('videoForm').addEventListener('submit', async function (
     if (!res2.ok) throw new Error(`Error creating video: ${await res2.text()}`);
     const { download_url } = await res2.json();
 
-    alert('✅ Vídeo criado com sucesso! Baixe em: ' + download_url);
+    // Show success and download link
+    if (bar) bar.value = 100;
+    if (text) text.textContent = '✔️ Vídeo pronto!';
+    if (downloadLink) {
+      downloadLink.href = download_url;
+      downloadLink.style.display = 'inline-block';
+    } else {
+      alert('✅ Vídeo criado com sucesso! Baixe em: ' + download_url);
+    }
   } catch (err) {
     console.error(err);
+    if (text) text.textContent = '❌ erro – veja console';
     alert('❌ Ocorreu um erro: ' + err.message);
   } finally {
     submitBtn.disabled = false;

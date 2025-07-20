@@ -132,3 +132,30 @@ progress.video-processing::-webkit-progress-value{ background:#007bff; }
   color:#999;
   text-align:center;
 }
+
+/* ========== DOWNLOAD BUTTON ========== */
+
+.container {
+  text-align: center;
+}
+
+#downloadLink{
+  display:inline-block;
+  width:fit-content;
+  margin:15px auto 0;
+  padding:8px 16px;
+  background:#ff6600;
+  color:white;
+  text-decoration:none;
+  border-radius:6px;
+  font-weight:thin;
+  font-size:14px;
+  text-align:center;
+  transition:all .3s ease;
+  box-shadow:0 2px 20px rgba(0,123,255,.3);
+}
+#downloadLink:hover{
+  background:#0056b3;
+  box-shadow:0 3px 10px rgba(0,123,255,.5);
+  transform:translateY(-1px);
+}
