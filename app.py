@@ -256,11 +256,13 @@ def process_video(data, session_id, progress_callback):
                 'message': 'Starting video generation.'
             }
 
-            # ▶️ 3. Gerar vídeo
+            # ▶️ 3. Agrupar por prefixo e gerar vídeo
+            from core.ffmpeg_processor import group_images_by_prefix
+            grouped = group_images_by_prefix(image_paths)   # ← NOVO
             output_filename = filename if filename.endswith('.mp4') else f"{filename}.mp4"
             output_path     = os.path.join(tmpdir, output_filename)
-            generate_final_video(
-                image_paths, audio_path, output_path,
+            generate_final_video(                           # passa o dict
+                grouped, audio_path, output_path,
                 green_duration, aspect_ratio, progress_callback
             )
 
