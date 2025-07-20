@@ -217,7 +217,8 @@ def progress_callback(percent: int) -> None:
     }    
     
     # Start video processing in background thread
-    thread = threading.Thread(target=process_video, args=(data, session_id, progress_callback))
+    thread = threading.Thread(target=process_video,
+                              args=(data, session_id))
     thread.start()
     
     return jsonify({
