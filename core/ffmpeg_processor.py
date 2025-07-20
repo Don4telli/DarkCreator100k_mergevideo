@@ -1,150 +1,153 @@
-# ──────────────────────────────────────────────────────────────────────────────
-#  core/ffmpeg_processor.py
-# ──────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+#  ffmpeg_processor.py  –  versão unificada
+# ─────────────────────────────────────────────────────────────────────────────
 import os, re, json, logging, shutil, tempfile, subprocess
 from collections import defaultdict
-from typing import List
+from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 1. UTILITÁRIOS
-# ──────────────────────────────────────────────────────────────────────────────
-def _run(cmd: list[str], quiet=False) -> None:
-    """Wrapper de subprocess.run com logging bonito."""
-    log_cmd = " ".join(cmd)
-    logger.info("🖥️  %s", log_cmd if not quiet else cmd[0])
-    subprocess.run(cmd, check=True, stdout=subprocess.PIPE if quiet else None,
-                   stderr=subprocess.STDOUT if quiet else None)
-
+# ╭──────────────────────────────────────────────────────────────────────────╮
+# │ 1. Utils básicos                                                        │
+# ╰──────────────────────────────────────────────────────────────────────────╯
+def _run(cmd: list[str]) -> None:
+    """Executa FFmpeg/FFprobe com log bonito + check=True."""
+    logger.info("🖥️  %s", " ".join(cmd))
+    subprocess.run(cmd, check=True)
 
 def _audio_duration(path: str) -> float:
-    """Retorna a duração (seg) do arquivo de áudio via ffprobe."""
-    out = subprocess.check_output([
-        "ffprobe", "-v", "quiet", "-print_format", "json",
-        "-show_entries", "format=duration", path
-    ], text=True)
+    """Duração do áudio (segundos) via ffprobe."""
+    out = subprocess.check_output(
+        ["ffprobe", "-v", "quiet", "-print_format", "json",
+         "-show_entries", "format=duration", path],
+        text=True
+    )
     return float(json.loads(out)["format"]["duration"])
 
+def _resolution_from_ratio(ratio: str) -> Tuple[int, int]:
+    """'9:16' → (1080,1920); '16:9' → (1920,1080)."""
+    return (1080, 1920) if ratio == "9:16" else (1920, 1080)
 
-def group_images_by_prefix(image_paths: List[str]):
-    logger.info("🔍 Agrupando imagens por prefixo...")
+def group_images_by_prefix(img_paths: List[str]):
     groups = defaultdict(list)
-    for p in image_paths:
-        filename = os.path.basename(p)
-        m = re.match(r'^([A-Za-z]+)', filename)
-        prefix = m.group(1).upper() if m else "DEFAULT"
-        groups[prefix].append(p)
-
-    # ordena A1, A2 … A15 corretamente
+    for p in img_paths:
+        m = re.match(r'^([A-Za-z]+)', os.path.basename(p))
+        key = m.group(1).upper() if m else "DEFAULT"
+        groups[key].append(p)
     for lst in groups.values():
         lst.sort(key=lambda x: int(re.findall(r'\d+', os.path.basename(x))[0]))
-    logger.info("✅ Grupos criados: %s", list(groups.keys()))
+    logger.info("✅ Prefixos: %s", list(groups.keys()))
     return groups
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# 2. BLOCO A / B / C …  (imagem + áudio completo, sem -shortest)
-# ──────────────────────────────────────────────────────────────────────────────
-def make_block(images: list[str], audio_path: str, output_path: str,
-               fps: int = 25) -> None:
-    """
-    Cria um MP4 com todas as imagens + áudio integral.
-    Cada imagem fica   duração_áudio / N.
-    """
+# ╭──────────────────────────────────────────────────────────────────────────╮
+# │ 2. Bloco A / B / C – imagens + áudio integral                           │
+# ╰──────────────────────────────────────────────────────────────────────────╯
+def _make_block(images: List[str], audio: str, out_mp4: str,
+                resolution: Tuple[int, int], fps: int = 25) -> None:
     if not images:
         raise ValueError("Lista de imagens vazia")
 
-    dur_audio = _audio_duration(audio_path)
+    dur_audio = _audio_duration(audio)
     dur_frame = dur_audio / len(images)
-    logger.info("🖼️  %d imgs  |  Áudio %.2fs  → %.3fs por frame",
-                len(images), dur_audio, dur_frame)
+    w, h      = resolution
+    logger.info("🖼️  %d imgs  |  %.2fs áudio  →  %.3fs/frame", len(images),
+                dur_audio, dur_frame)
 
-    # lista concat
-    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".txt") as ftxt:
+    # lista-concat temporária
+    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".txt") as f:
         for img in images[:-1]:
-            ftxt.write(f"file '{img}'\n")
-            ftxt.write(f"duration {dur_frame}\n")
-        ftxt.write(f"file '{images[-1]}'\n")
-        list_path = ftxt.name
+            f.write(f"file '{img}'\n")
+            f.write(f"duration {dur_frame}\n")
+        f.write(f"file '{images[-1]}'\n")
+        lst = f.name
 
-    # step 1: renderiza vídeo silencioso
-    tmp_vid = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-    _run(["ffmpeg", "-y", "-safe", "0", "-f", "concat", "-i", list_path,
-          "-vsync", "vfr", "-r", str(fps),
-          "-pix_fmt", "yuv420p", "-c:v", "libx264", tmp_vid], quiet=True)
+    # 1. vídeo silencioso pad+scale
+    vid_tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+    _run([
+        "ffmpeg", "-y", "-safe", "0", "-f", "concat", "-i", lst,
+        "-vsync", "vfr", "-r", str(fps),
+        "-vf", (f"scale={w}:{h}:force_original_aspect_ratio=cover,"
+                f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2"),
+        "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "veryfast",
+        vid_tmp
+    ])
 
-    # step 2: muxa com áudio (sem -shortest)
-    _run(["ffmpeg", "-y", "-i", tmp_vid, "-i", audio_path,
-          "-c:v", "copy", "-c:a", "aac",
-          "-map", "0:v:0", "-map", "1:a:0", output_path], quiet=True)
+    # 2. muxa áudio integral (sem -shortest)
+    _run([
+        "ffmpeg", "-y",
+        "-i", vid_tmp, "-i", audio,
+        "-c:v", "copy",
+        "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
+        "-map", "0:v:0", "-map", "1:a:0",
+        out_mp4
+    ])
 
-    os.remove(list_path); os.remove(tmp_vid)
-    logger.info("✅ Bloco pronto → %s", output_path)
+    os.remove(lst); os.remove(vid_tmp)
+    logger.info("✅ Bloco salvo → %s", out_mp4)
 
+# ╭──────────────────────────────────────────────────────────────────────────╮
+# │ 3. Tela verde (silêncio + resolução correta)                            │
+# ╰──────────────────────────────────────────────────────────────────────────╯
+def _make_green(path: str, dur: int, resolution: Tuple[int, int]) -> None:
+    w, h = resolution
+    _run([
+        "ffmpeg", "-y",
+        "-f", "lavfi", "-i", f"color=c=00ff00:s={w}x{h}:d={dur}",
+        "-f", "lavfi", "-i", "anullsrc=sample_rate=48000:cl=stereo",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-shortest", "-t", str(dur),
+        path
+    ])
+    logger.info("🟩 Tela verde %ss → %s", dur, path)
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 3. TELA VERDE (clipe filler com silêncio)
-# ──────────────────────────────────────────────────────────────────────────────
-def create_green_clip(path, duration, resolution):
-    w, h = resolution.split('x')
-    _run(["ffmpeg", "-y",
-          "-f", "lavfi", "-i", f"color=c=00ff00:s={w}x{h}:d={duration}",
-          "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
-          "-c:v", "libx264", "-t", str(duration),
-          "-pix_fmt", "yuv420p", "-c:a", "aac", path], quiet=True)
-    logger.info("🟩 Tela verde criada %ss → %s", duration, path)
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# 4. PIPELINE FINAL
-# ──────────────────────────────────────────────────────────────────────────────
-def generate_final_video(image_groups, audio_path, output_path,
-                         green_duration, resolution, progress_cb):
+# ╭──────────────────────────────────────────────────────────────────────────╮
+# │ 4. Pipeline principal                                                   │
+# ╰──────────────────────────────────────────────────────────────────────────╯
+def generate_final_video(image_groups,
+                         audio_path: str,
+                         output_path: str,
+                         green_duration: int,
+                         aspect_ratio: str,
+                         progress_cb):
     """
-    Para cada grupo A/B/C:
-      • renderiza bloco com make_block (áudio completo)
-      • insere tela verde silenciosa entre blocos
-    Concatena tudo sem recodificar vídeo; áudio contínuo.
-    Envia progress em ~10 %  →  100 %.
+    Gera vídeo final com blocos A/B/C  +  telas-verdes.
+    Progresso: 0-10-20-…-90-100.
     """
-    tmpdir = tempfile.mkdtemp()
-    part_videos = []
+    res = _resolution_from_ratio(aspect_ratio)
+    tmp  = tempfile.mkdtemp()
+    parts = []
 
     total = len(image_groups)
-    logger.info("🎞️ Começando geração – %d blocos", total)
+    logger.info("🎬 %d blocos – resolução %s", total, res)
 
-    # ---- loop pelos blocos ----
-    for idx, (prefix, imgs) in enumerate(sorted(image_groups.items()), 1):
-        logger.info("📂 [%d/%d] Bloco «%s» (%d imgs)",
-                    idx, total, prefix, len(imgs))
+    for idx, (pref, imgs) in enumerate(sorted(image_groups.items()), 1):
+        progress_cb(10 + int((idx-1)/total * 70))        # 10,20…
+        out_blk = os.path.join(tmp, f"{pref}.mp4")
+        _make_block(imgs, audio_path, out_blk, res)
+        parts.append(out_blk)
 
-        part_path = os.path.join(tmpdir, f"{prefix}.mp4")
-        make_block(imgs, audio_path, part_path)
-        part_videos.append(part_path)
-
-        if idx != total:  # tela verde entre blocos
-            green = os.path.join(tmpdir, f"green_{idx}.mp4")
-            create_green_clip(green, green_duration, resolution)
-            part_videos.append(green)
-
-        # progresso em steps de 10 %  (10 → 80)
-        progress_cb(10 + int(idx / total * 70))
+        if idx != total:  # green entre blocos
+            g = os.path.join(tmp, f"green_{idx}.mp4")
+            _make_green(g, green_duration, res)
+            parts.append(g)
 
     progress_cb(90)  # blocos prontos
-    logger.info("🔗 Concat final com %d partes", len(part_videos))
 
-    # ---- concat final ----
-    concat_list = os.path.join(tmpdir, "concat.txt")
-    with open(concat_list, "w") as f:
-        for p in part_videos:
+    # concat final
+    concat_txt = os.path.join(tmp, "list.txt")
+    with open(concat_txt, "w") as f:
+        for p in parts:
             f.write(f"file '{p}'\n")
 
-    _run(["ffmpeg", "-y", "-safe", "0", "-f", "concat", "-i", concat_list,
-          "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-          "-movflags", "+faststart", output_path], quiet=True)
+    _run([
+        "ffmpeg", "-y", "-safe", "0", "-f", "concat", "-i", concat_txt,
+        "-c:v", "copy",
+        "-c:a", "aac", "-b:a", "192k",
+        "-movflags", "+faststart",
+        output_path
+    ])
 
     progress_cb(100)
     logger.info("🎉 Vídeo final → %s", output_path)
-    shutil.rmtree(tmpdir, ignore_errors=True)
-# ──────────────────────────────────────────────────────────────────────────────
+    shutil.rmtree(tmp, ignore_errors=True)
+# ─────────────────────────────────────────────────────────────────────────────
