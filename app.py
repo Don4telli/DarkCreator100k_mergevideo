@@ -3,10 +3,8 @@ from werkzeug.exceptions import HTTPException
 from google.cloud import storage
 from core.ffmpeg_processor import generate_final_video, group_images_by_prefix
 import os, tempfile, uuid, logging, threading, time, json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask_cors import CORS
-import os, tempfile, logging
-import datetime
 
 
 
@@ -96,7 +94,7 @@ def get_signed_url():
         # Gerar signed URL para upload (válida por 1 hora)
         signed_url = blob.generate_signed_url(
             version="v4",
-            expiration=datetime.utcnow() + timedelta(hours=1),   # ↖️ 1 h à frente
+            expiration=datetime.now(timezone.utc) + timedelta(hours=1),   # ↖️ 1 h à frente
             method="PUT",
             service_account_email="storage-signer-sa@dark-creator-video-app.iam.gserviceaccount.com"
         )
@@ -145,7 +143,7 @@ def upload_video_to_bucket(bucket_name, local_file_path, destination_blob_name):
         # Gerar URL de download com validade de 24 horas
         download_url = blob.generate_signed_url(
             version="v4",
-            expiration=datetime.utcnow() + timedelta(hours=24),
+            expiration=datetime.now(timezone.utc) + timedelta(hours=24),
             method="GET"
         )
         
@@ -377,7 +375,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'darkcreator100k-mergevideo',
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': datetime.now(timezone.utc).isoformat()
     }), 200
 
 if __name__ == "__main__":
