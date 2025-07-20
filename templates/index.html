@@ -1,19 +1,19 @@
 <!DOCTYPE html>
-<html lang="pt‑BR">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <title>DarkNews Creator 💎</title>
 
-  <!-- fonte Inter -->
+  <!-- Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
-  <!-- estilos gerais + overlay -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/lock.css') }}">
+  <!-- estilos -->
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/lock.css">
 </head>
 <body>
 
-  <!-- 🔒 overlay com cadeado + chave -->
+  <!-- 🔒 overlay -->
   <div id="lockOverlay">
     <div id="lockBox">
       <span id="lockIcon"></span>
@@ -23,16 +23,16 @@
   </div>
 
   <!-- navbar -->
-  <div class="nav">                 <!-- estrutura mantida do seu HTML original :contentReference[oaicite:0]{index=0} -->
+  <div class="nav">
     <button onclick="window.open('https://chat.openai.com')">ChatGPT</button>
     <button onclick="window.open('https://www.tiktok.com')">TikTok</button>
-    <button onclick="window.open('https://fishaudio.com')">Fish&nbsp;Audio</button>
+    <button onclick="window.open('https://fishaudio.com')">Fish Audio</button>
     <button onclick="window.open('https://www.script.tokaudit.io/')">Transcrição</button>
     <button onclick="window.open('https://cobalt.tools/')">Downloader</button>
   </div>
 
-  <!-- formulário principal -->
-  <div class="container">           <!-- idem estrutura original :contentReference[oaicite:1]{index=1} -->
+  <!-- form -->
+  <div class="container">
     <h1>DarkNews Creator <span class="glow">💎</span></h1>
 
     <form id="videoForm">
@@ -51,12 +51,11 @@
         <option value="16:9">16:9 (Landscape)</option>
       </select>
 
-      <label>Green Screen Duration&nbsp;(s):</label>
+      <label>Green Screen Duration (s):</label>
       <input type="text" name="green_duration" value="5.0">
 
-      <button class="submit" type="submit">Create&nbsp;Video</button>
+      <button class="submit" type="submit">Create Video</button>
 
-      <!-- progresso -->
       <div id="progressContainer">
         <progress id="progressBar" value="0" max="100"></progress>
         <div id="progressText">Uploading…</div>
@@ -65,8 +64,8 @@
     </form>
   </div>
 
-  <!-- JS: overlay + upload -->
-  <script type="module" src="{{ url_for('static', filename='js/lock.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='js/upload_progress.js') }}" defer></script>
+  <!-- scripts -->
+  <script type="module" src="/static/js/lock.js" defer></script>
+  <script src="/static/js/upload_progress.js" defer></script>
 </body>
 </html>

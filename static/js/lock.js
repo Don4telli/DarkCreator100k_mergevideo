@@ -1,82 +1,72 @@
-// lock.js  (exemplo resumido)
+/* --- config ---------------------------------------------------------------- */
+const MASTER_CODE = "Aa123";           // senha mestra
 
+// Firebase (opcional) – coloque suas chaves se for usar a Function
+/*
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFunctions, httpsCallable }
        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
-// 1) Config Firebase — se preferir, coloque num outro módulo e faça import { firebaseConfig } …
-const firebaseConfig = {
-  apiKey: "…",
-  authDomain: "…",
-  projectId: "…",
-  appId: "…"
-};
-
+const firebaseConfig = { /* ... * / };
 const app       = initializeApp(firebaseConfig);
 const functions = getFunctions(app, "europe-west1");
 const verify    = httpsCallable(functions, "verifyCode");
+*/
 
-// 2) DOM refs
+/* --- helpers ----------------------------------------------------------------*/
 const overlay = document.getElementById("lockOverlay");
 const input   = document.getElementById("codeInput");
 const btn     = document.getElementById("unlockBtn");
 
-// 3) deviceId + cache
 const deviceId = (() => {
   let id = localStorage.getItem("deviceId");
   if (!id) { id = crypto.randomUUID(); localStorage.setItem("deviceId", id); }
   return id;
 })();
 
-// 4) se já desbloqueado, pula overlay
 const cached = JSON.parse(localStorage.getItem("codeOk") || "null");
 if (cached) showSite(cached.welcomeName);
 
-// 5) listeners
 btn.addEventListener("click", tryUnlock);
 input.addEventListener("keyup", e => e.key === "Enter" && tryUnlock());
-
-const MASTER_CODE = "Aa123";    // 👈  senha mestra
 
 function tryUnlock() {
   const code = input.value.trim();
   if (!code) return;
   btn.disabled = true;
 
-  /* ①  se for a senha mestra, desbloqueia sem Firebase */
+  /* ① senha mestra ----------------------------- */
   if (code === MASTER_CODE) {
     localStorage.setItem("codeOk", JSON.stringify({
-      deviceId,
-      code: "MASTER",
-      welcomeName: "Admin"
+      deviceId, code: "MASTER", welcomeName: "Admin"
     }));
     showSite("Admin");
     btn.disabled = false;
-    return;                     // sai da função
+    return;
   }
 
-  /* ②  caso contrário, chama a Cloud Function */
+  /* ② sem Firebase? apenas erro visual ---------- */
+  shakeRed("Código inválido");
+  btn.disabled = false;
+
+  /* ② com Firebase? descomente e use:
   verify({ code, deviceId })
     .then(({ data }) => {
       localStorage.setItem("codeOk", JSON.stringify({ ...data, code, deviceId }));
       showSite(data.welcomeName);
     })
-    .catch(err => {
-  // 1) destaca o campo em vermelho
-    input.classList.add("error");
-    setTimeout(() => input.classList.remove("error"), 800);
-
-    // 2) (opcional) anima uma tremidinha
-    input.classList.add("shake");
-    setTimeout(() => input.classList.remove("shake"), 400);
-    })
+    .catch(err => shakeRed(err?.message || "Erro"))
     .finally(() => (btn.disabled = false));
+  */
 }
 
 function showSite(name) {
   overlay.style.display = "none";
-  // Exemplo: mostrar “Bem-vindo” em algum canto fixo
-  document.body.insertAdjacentHTML("afterbegin",
-    `<div id="welcome" style="position:fixed;top:10px;right:10px;">Bem‑vindo ${name}!</div>`
-  );
+  console.log("Bem-vindo", name);
+}
+
+function shakeRed(msg) {
+  input.classList.add("error", "shake");
+  setTimeout(() => input.classList.remove("error", "shake"), 800);
+  console.warn(msg);
 }
