@@ -95,95 +95,95 @@ def create_video_from_images_and_audio(image_paths: List[str], audio_path: str, 
         logger.info(f"✅ Vídeo criado em: {output_path}")
 
 
-def create_green_clip(output_path: str, duration: int = 3, resolution=(1080, 1920), with_audio=True):
-    logger.info("🟢 Criando clipe verde...")
-    width, height = resolution
-    
-    if with_audio:
-        command = [
+def create_green_clip(path, duration, resolution):
+    """
+    Gera um clipe de tela verde com faixa de silêncio.
+    """
+    w, h = resolution.split('x')
+    logger.info("🟩 Criando tela verde %ss (%s×%s)…", duration, w, h)
+
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-f", "lavfi", "-i", f"color=c=00ff00:s={w}x{h}:d={duration}",
+        "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+        "-c:v", "libx264", "-preset", "veryfast",
+        "-t", str(duration),
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-shortest",
+        path
+    ], check=True)
+
+    logger.info("✅ Tela verde pronta → %s", path)
+
+
+def generate_final_video(image_groups, audio_path, output_path,
+                         green_duration, resolution, progress_cb):
+    """
+    Cria cada bloco (A, B, C…) com áudio completo, insere clipes verde-silenciosos
+    e concatena tudo num único vídeo final.
+    """
+    tmpdir = tempfile.mkdtemp()
+    part_videos = []
+
+    total_groups = len(image_groups)
+    logger.info("🎞️ Iniciando geração – %d grupos de imagens", total_groups)
+
+    for idx, (prefix, images) in enumerate(sorted(image_groups.items()), 1):
+        logger.info("📂 Grupo %d/%d «%s» – %d imagens",
+                    idx, total_groups, prefix, len(images))
+        progress_cb(int(idx / total_groups * 40))
+
+        # 1️⃣ Arquivo-texto para concat interna do grupo
+        img_list = os.path.join(tmpdir, f"{prefix}.txt")
+        with open(img_list, "w") as f:
+            for img in images:
+                f.write(f"file '{img}'\n")
+                f.write("duration 1\n")
+            f.write(f"file '{images[-1]}'\n")  # bug-workaround
+
+        part_path = os.path.join(tmpdir, f"{prefix}.mp4")
+        logger.info("🛠️  Gerando bloco «%s»…", prefix)
+        subprocess.run([
             "ffmpeg", "-y",
-            "-f", "lavfi",
-            "-i", f"color=c=green:s={width}x{height}:d={duration}",
-            "-f", "lavfi",
-            "-i", "anullsrc=r=44100:cl=stereo",
+            "-f", "concat", "-safe", "0", "-i", img_list,
+            "-i", audio_path,
+            "-c:v", "libx264", "-preset", "veryfast",
+            "-c:a", "aac",
             "-shortest",
-            "-c:v", "libx264", "-c:a", "aac", "-pix_fmt", "yuv420p",
-            output_path
-        ]
-    else:
-        command = [
-            "ffmpeg", "-y",
-            "-f", "lavfi",
-            "-i", f"color=c=green:s={width}x{height}:d={duration}",
-            "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            output_path
-        ]
-    
-    try:
-        subprocess.run(command, check=True)
-        logger.info(f"✅ Clipe verde criado em: {output_path}")
-    except Exception as e:
-        logger.exception(f"❌ Erro ao criar clipe verde: {str(e)}")
-        raise
+            "-pix_fmt", "yuv420p",
+            part_path
+        ], check=True)
+        logger.info("✅ Bloco «%s» pronto → %s", prefix, part_path)
+        part_videos.append(part_path)
 
+        # 2️⃣ Tela verde entre blocos
+        if idx != total_groups:
+            green_clip = os.path.join(tmpdir, f"green_{idx}.mp4")
+            create_green_clip(green_clip, green_duration, resolution)
+            part_videos.append(green_clip)
 
-def generate_final_video(image_paths: List[str], audio_path: str, output_path: str, green_duration: float = 3.0, aspect_ratio: str = "9:16", progress_callback=None):
-    logger.info("🛠 Gerando vídeo final...")
-    
-    # Determinar resolução baseada no aspect ratio
-    if aspect_ratio == "9:16":
-        resolution = (1080, 1920)  # Portrait
-    elif aspect_ratio == "16:9":
-        resolution = (1920, 1080)  # Landscape
-    else:
-        resolution = (1080, 1920)  # Default para portrait
-    
-    logger.info(f"📐 Aspect ratio: {aspect_ratio}, Resolução: {resolution}")
-    
-    groups = group_images_by_prefix(image_paths)
-    logger.info(f"📁 Grupos de imagens: {list(groups.keys())}")
-    
-    has_audio = audio_path is not None
-    logger.info(f"🎵 Áudio presente: {has_audio}")
-    
-    total_groups = len(groups)
-    
-    with tempfile.TemporaryDirectory() as tmpdir:
-        part_videos = []
-        green_clip_path = os.path.join(tmpdir, "green.mp4")
-        
-        if progress_callback:
-            progress_callback("Creating green screen clips", 0, total_groups)
-        create_green_clip(green_clip_path, duration=int(green_duration), resolution=resolution, with_audio=has_audio)
-        
-        for i, (prefix, images) in enumerate(sorted(groups.items())):
-            if progress_callback:
-                progress_callback(f"Processing video group {prefix}", i, total_groups)
-            
-            logger.info(f"📽 Criando parte do vídeo para prefixo {prefix} com {len(images)} imagens...")
-            video_part_path = os.path.join(tmpdir, f"{prefix}.mp4")
-            create_video_from_images_and_audio(images, audio_path, video_part_path)
-            logger.info(f"✅ Parte {prefix} criada em: {video_part_path}")
-            part_videos.append(video_part_path)
-            part_videos.append(green_clip_path)
-        
-        if part_videos and part_videos[-1] == green_clip_path:
-            part_videos.pop()  # remove tela verde do final
-        
-        if progress_callback:
-            progress_callback("Concatenating video segments", total_groups, total_groups)
-        
-        concat_list = os.path.join(tmpdir, "concat.txt")
-        with open(concat_list, "w") as f:
-            for video in part_videos:
-                f.write(f"file '{video}'\n")
-        
-        logger.info("🔗 Preparando lista de concatenação...")
-        command = [
-            "ffmpeg", "-y",
-            "-f", "concat", "-safe", "0", "-i", concat_list,
-            "-c", "copy", output_path
-        ]
-        logger.info("🚀 Concatenando vídeos...")
-        subprocess.run(command, check=True)
-        logger.info(f"🎉 Vídeo final gerado em: {output_path}")
+    progress_cb(60)
+    logger.info("🔗 Concat final (%d partes)…", len(part_videos))
+
+    # 3️⃣ Lista para concat final
+    concat_list = os.path.join(tmpdir, "all.txt")
+    with open(concat_list, "w") as f:
+        for p in part_videos:
+            f.write(f"file '{p}'\n")
+
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-f", "concat", "-safe", "0", "-i", concat_list,
+        "-c:v", "copy",                 # vídeo já codificado
+        "-c:a", "aac", "-b:a", "192k",  # remuxa áudio contínuo
+        "-movflags", "+faststart",
+        output_path
+    ], check=True)
+
+    logger.info("🎉 Vídeo final criado → %s", output_path)
+    progress_cb(100)
+
+    shutil.rmtree(tmpdir, ignore_errors=True)
+    logger.info("🧹 Limpeza temporários concluída")
+
