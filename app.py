@@ -153,11 +153,12 @@ def create_video():
 
 # ╭────────────────────────── PROCESSAMENTO ════════════════════════════════╮
 def process_video(data, session_id):
-    def cb(pct: int, phase: str = "processing"):
+    def cb(pct: int, phase: str = "processing", msg: str | None = None):
         _set_progress(session_id,
-                      status=phase,
-                      progress=int(pct),
-                      completed=False)
+                    status=phase,
+                    progress=int(pct),
+                    message=msg,
+                    completed=False)
 
     try:
         images       = data['image_filenames']
@@ -169,6 +170,7 @@ def process_video(data, session_id):
         logger.info("📥 %d imagens; áudio: %s", len(images), bool(audio))
         _set_progress(session_id, status="downloading", progress=0)
 
+        # ── 1. baixar mídias ──────────────────────────────────────────
         with tempfile.TemporaryDirectory() as tmp:
             client = storage.Client()
             bucket = client.bucket(BUCKET_NAME)
@@ -184,8 +186,11 @@ def process_video(data, session_id):
                 audio_path = os.path.join(tmp, 'audio.mp3')
                 bucket.blob(audio).download_to_filename(audio_path)
 
-            cb(20)
+            # 20 % — downloads concluídos
+            cb(20, "processing",
+                "Imagens baixadas — iniciando renderização…")
 
+            # ── 2. gerar vídeo ────────────────────────────────────────
             groups   = group_images_by_prefix(img_paths)
             out_name = filename if filename.endswith('.mp4') else f'{filename}.mp4'
             out_path = os.path.join(tmp, out_name)
@@ -193,10 +198,11 @@ def process_video(data, session_id):
             generate_final_video(
                 groups, audio_path, out_path,
                 green_sec, aspect_ratio.replace(':', 'x'),
-                lambda p: cb(p, "processing")
+                lambda p: cb(p, "processing", "Renderizando vídeo…")
             )
 
-            cb(90, "uploading")  # 90 % antes do upload
+            # 90 % — upload
+            cb(90, "uploading", "Enviando vídeo ao bucket…")
 
             dest_blob = f'videos/{session_id}.mp4'
             bucket.blob(dest_blob).upload_from_filename(out_path)
@@ -206,6 +212,7 @@ def process_video(data, session_id):
                 expiration=timedelta(hours=1),
                 response_disposition=f'attachment; filename="{out_name}"'
             )
+
 
         _set_progress(session_id,
                       status="completed",

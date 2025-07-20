@@ -83,7 +83,9 @@ def _make_block(images: List[str], audio: str, out_mp4: str,
         "-vf", (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"   # ← fix
                 f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2"),
         "-pix_fmt", "yuv420p",
-        "-c:v", "libx264", "-preset", "veryfast",
+        #"-c:v", "libx264", "-preset", "veryfast",
+        "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+        "-profile:v", "high", "-level", "4.2",
         vid_tmp
     ])
 
@@ -134,18 +136,23 @@ def generate_final_video(image_groups,
     logger.info("🎬 %d blocos – resolução %s", total, res)
 
     for i, (pref, imgs) in enumerate(sorted(image_groups.items()), 1):
-        progress_cb(10 + int((i-1)/total * 70))
+        pct = 10 + int((i - 1) / total * 70)           # 10‑80 %
+        progress_cb(pct, "processing",
+                    f"Renderizando bloco {i}/{total} ({pref})")
+
+        # arquivo MP4 do bloco
         blk = os.path.join(tmpd, f"{pref}.mp4")
         _make_block(imgs, audio_path, blk, res)
         parts.append(blk)
-        # dentro de generate_final_video, logo após criar part_path …
+
         if i != total:
+            progress_cb(pct + 2, "processing", "Gerando tela verde…")
             green = os.path.join(tmpd, f"green_{i}.mp4")
-            _green(green, green_sec, res)     # ← ordem correta
+            _green(green, green_sec, res)
             parts.append(green)
 
-
-    progress_cb(90)
+    # após todos os blocos
+    progress_cb(88, "processing", "Concatenando blocos…")
 
     concat = os.path.join(tmpd, "all.txt")
     with open(concat, "w") as f:
@@ -159,7 +166,9 @@ def generate_final_video(image_groups,
         "-movflags", "+faststart", output_path
     ])
 
-    progress_cb(100)
+    # sai com 100 %
+    progress_cb(100, "completed", "Pronto!")
     logger.info("🎉 Final → %s", output_path)
     shutil.rmtree(tmpd, ignore_errors=True)
+
 # ─────────────────────────────────────────────────────────────────────────────
