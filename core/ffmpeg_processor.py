@@ -47,11 +47,17 @@ def group_images_by_prefix(imgs: List[str]):
 # ╰──────────────────────────────────────────────────────────────────────────╯
 def _make_block(images: List[str], audio: str, out_mp4: str,
                 res: Tuple[int, int], fps: int = 25) -> None:
+    """Renderiza um bloco (imagens + áudio integral) na resolução `res`."""
+    if not images:
+        raise ValueError("Lista de imagens vazia")
+
     dur_a = _audio_duration(audio)
     dur_f = dur_a / len(images)
     w, h  = res
-    logger.info("🖼️  %d imgs | %.2fs áudio → %.3fs/frame", len(images), dur_a, dur_f)
+    logger.info("🖼️  %d imgs | %.2fs áudio → %.3fs/frame",
+                len(images), dur_a, dur_f)
 
+    # arquivo-lista para o concat
     concat_txt = tempfile.NamedTemporaryFile(delete=False, suffix=".txt").name
     with open(concat_txt, "w") as f:
         for img in images[:-1]:
@@ -59,27 +65,34 @@ def _make_block(images: List[str], audio: str, out_mp4: str,
             f.write(f"duration {dur_f}\n")
         f.write(f"file '{images[-1]}'\n")
 
+    # 1. vídeo silencioso escalado/pad
     vid_tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
     _run([
         "ffmpeg", "-y",
         "-protocol_whitelist", "file,pipe",
         "-f", "concat", "-safe", "0", "-i", concat_txt,
         "-vsync", "vfr", "-r", str(fps),
-        "-vf", (f"scale={w}:{h}:force_original_aspect_ratio=cover,"
+        "-vf", (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"   # ← fix
                 f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2"),
-        "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "veryfast",
+        "-pix_fmt", "yuv420p",
+        "-c:v", "libx264", "-preset", "veryfast",
         vid_tmp
     ])
 
+    # 2. muxa áudio integral
     _run([
-        "ffmpeg", "-y", "-i", vid_tmp, "-i", audio,
+        "ffmpeg", "-y",
+        "-i", vid_tmp, "-i", audio,
         "-c:v", "copy",
         "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
-        "-map", "0:v:0", "-map", "1:a:0", out_mp4
+        "-map", "0:v:0", "-map", "1:a:0",
+        out_mp4
     ])
 
-    os.remove(concat_txt); os.remove(vid_tmp)
+    os.remove(concat_txt)
+    os.remove(vid_tmp)
     logger.info("✅ Bloco pronto → %s", out_mp4)
+
 
 # ╭──────────────────────────────────────────────────────────────────────────╮
 # │ 3. Tela verde                                                          │
