@@ -62,11 +62,39 @@ document.getElementById('videoForm').addEventListener('submit', async function (
   }
 
   try {
-    // Upload all images in sequence (or use Promise.all for parallel)
-    for (let file of imageInput.files) {
-      const name = await uploadFile(file, 'image');
-      uploadedImageNames.push(name);
+    // Upload all images in parallel (max 60 concurrent)
+    const files = Array.from(imageInput.files)
+                      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    
+    const maxConcurrent = 60;
+    
+    class Semaphore {
+      constructor(count){ this.count=count; this.waiting=[]; }
+      async acquire(){
+        if(this.count>0){ this.count--; return; }
+        return new Promise(res => this.waiting.push(res));
+      }
+      release(){
+        this.count++;
+        if(this.waiting.length){
+          const res=this.waiting.shift();
+          this.count--; res();
+        }
+      }
     }
+    const sem = new Semaphore(maxConcurrent);
+    
+    const uploadPromises = files.map(async (file) => {
+      await sem.acquire();
+      try {
+        return await uploadFile(file, 'image');
+      } finally { 
+        sem.release(); 
+      }
+    });
+    
+    const uploadResults = await Promise.all(uploadPromises);
+    uploadedImageNames.push(...uploadResults);
 
     // If audio provided, upload it too
     if (audioInput.files.length) {
