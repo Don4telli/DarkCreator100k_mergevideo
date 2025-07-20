@@ -1,0 +1,134 @@
+/* ========== VARIÁVEL P/ COR PRINCIPAL (opcional) ========== */
+:root { --accent: #ff4d00; }
+
+/* ========== BASE ========== */
+body{
+  background:#0a0a0a;
+  font-family:'Inter',sans-serif;
+  color:#e0e0e0;
+  margin:0;
+  padding:0;
+}
+
+/* ========== NAVBAR ========== */
+.nav{
+  display:flex;
+  justify-content:center;
+  background:#111;
+  padding:14px;
+  box-shadow:0 0 20px rgba(255,77,0,.2);
+}
+
+.nav button{
+  background:transparent;
+  border:1px solid var(--accent);
+  color:var(--accent);
+  padding:8px 14px;
+  margin:0 8px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:.3s;
+}
+.nav button:hover{
+  background:var(--accent);
+  color:#0a0a0a;
+  box-shadow:0 0 10px var(--accent);
+}
+
+/* ========== FORM CONTAINER ========== */
+.container{
+  background:#101010;
+  padding:40px;
+  border-radius:16px;
+  box-shadow:0 0 30px rgba(255,77,0,.2);
+  width:420px;
+  margin:40px auto;
+}
+
+/* ========== TÍTULOS ========== */
+h1{
+  text-align:center;
+  font-weight:700;
+  font-size:24px;
+  color:#fff;
+  margin-bottom:20px;
+}
+h1 .glow{
+  display:inline-block;
+  color:#fff;
+  text-shadow:0 0 6px var(--accent),0 0 12px var(--accent);
+}
+
+/* ========== LABELS & CAMPOS ========== */
+label{
+  display:block;
+  margin:20px 0 6px;
+  font-weight:500;
+  color:#b0b0b0;
+}
+input,select{
+  width:100%;
+  padding:10px;
+  background:#1a1a1a;
+  border:1px solid #444;
+  border-radius:8px;
+  color:#e0e0e0;
+  font-size:14px;
+  outline:none;
+}
+input:focus,select:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 6px var(--accent);
+}
+input::file-selector-button{
+  background:#1a1a1a;
+  border:none;
+  color:var(--accent);
+  font-weight:bold;
+  cursor:pointer;
+}
+
+/* ========== BOTÃO SUBMIT ========== */
+button.submit{
+  margin-top:30px;
+  width:100%;
+  padding:12px;
+  background:var(--accent);
+  border:none;
+  border-radius:8px;
+  color:#0a0a0a;
+  font-weight:700;
+  font-size:16px;
+  cursor:pointer;
+  transition:box-shadow .3s;
+}
+button.submit:hover{
+  box-shadow:0 0 15px var(--accent);
+}
+
+/* ========== PROGRESS BAR ========== */
+#progressContainer{ margin-top:20px; display:none; }
+
+progress{
+  width:100%;
+  height:20px;
+  appearance:none;
+  border-radius:8px;
+  overflow:hidden;
+}
+progress::-webkit-progress-bar{ background:#1a1a1a; }
+progress::-webkit-progress-value{ background:var(--accent); }
+progress.video-processing::-webkit-progress-value{ background:#007bff; }
+
+#progressText{
+  margin-top:8px;
+  font-size:14px;
+  text-align:center;
+  color:#ccc;
+}
+#uploadStats{
+  margin-top:10px;
+  font-size:12px;
+  color:#999;
+  text-align:center;
+}
