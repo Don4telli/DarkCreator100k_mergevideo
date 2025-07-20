@@ -1,10 +1,11 @@
 from flask import Flask, request, send_file, jsonify, Response, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
 from google.cloud import storage
-from core.ffmpeg_processor import generate_final_video
+from core.ffmpeg_processor import generate_final_video, group_images_by_prefix
 import os, tempfile, uuid, logging, threading, time, json
 from datetime import datetime, timedelta
 from flask_cors import CORS
+import os, tempfile, logging, shutil
 
 
 app = Flask(__name__)
@@ -36,7 +37,8 @@ def handle_exception(e):
 
 
 
-BUCKET_NAME = "dark_storage"
+logger       = logging.getLogger(__name__)
+BUCKET_NAME  = os.environ.get("BUCKET_NAME", "dark_storage")
 
 def generate_download_url(blob, expires=3600):
     """
@@ -198,17 +200,21 @@ def create_video():
     session_id = str(uuid.uuid4())
     progress_data[session_id] = {'status': 'starting', 'progress': 0, 'message': 'Initializing...'}
     
-    def progress_callback(percent: int):
-        """Atualiza a barra de progresso (0-100)."""
-        progress_data[session_id]['progress'] = percent
+def progress_callback(percent: int) -> None:
+    """
+        Atualiza o progresso do job (0-100).
 
-        progress_data[session_id] = {
+        Chamado de dentro de core/ffmpeg_processor.generate_final_video().
+        """
+    progress_data[session_id]['progress'] = percent
+
+    progress_data[session_id] = {
             'status': 'processing',
             'progress': progress_percent,
             'message': message,
             'current': current,
             'total': total
-        }
+    }    
     
     # Start video processing in background thread
     thread = threading.Thread(target=process_video, args=(data, session_id, progress_callback))
@@ -219,84 +225,78 @@ def create_video():
         'message': 'Video processing started'
     })
 
-def process_video(data, session_id, progress_callback):
-    """Gera o vídeo em segundo-plano e atualiza progress_data."""
+def process_video(data, session_id):
+    """
+    Executa o pipeline:
+      20% baixar → 90% gerar vídeo → 100% upload + URL
+    Atualiza progress_data[session_id] a cada etapa.
+    """
+    # ── callback usado pelo ffmpeg_processor ──────────────────────────
+    def progress_callback(percent: int) -> None:
+        progress_data[session_id]['progress'] = percent
+
     try:
-        # parâmetros vindos do frontend
-        images        = data['image_filenames']
-        audio         = data.get('audio_filename')
+        # ── 0. parâmetros vindos do front-end ─────────────────────────
+        images        = data['image_filenames']          # lista no bucket
+        audio         = data.get('audio_filename')       # opcional
         filename      = data.get('filename', 'my_video.mp4')
         aspect_ratio  = data.get('aspect_ratio', '9:16')
-        green_duration = float(data.get('green_duration', 5.0))
+        green_seconds = float(data.get('green_duration', 3))
 
-        logger.info(f"📂 {len(images)} imagens recebidas")
-        if audio:
-            logger.info(f"🎵 Áudio recebido: {audio}")
+        logger.info("📥 %d imagens; áudio: %s", len(images), bool(audio))
+        progress_data[session_id] = {'status': 'downloading', 'progress': 0}
 
-        progress_data[session_id] = {
-            'status': 'downloading', 'progress': 10,
-            'message': 'Downloading images from storage.'
-        }
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # ▶️ 1. Baixar cada blob preservando o **nome original**
+        # ── 1. baixar mídias ──────────────────────────────────────────
+        with tempfile.TemporaryDirectory() as tmp:
             image_paths = []
-            for blob_name in images:
-                local_path = os.path.join(tmpdir, os.path.basename(blob_name))
-                logger.info(f"⬇️ Baixando {blob_name} → {local_path}")
-                download_from_bucket(BUCKET_NAME, blob_name, local_path)
-                image_paths.append(local_path)
-
-            # ▶️ 2. Baixar áudio (opcional)
-            audio_path = None
-            if audio:
-                audio_path = os.path.join(tmpdir, "audio.mp3")
-                download_from_bucket(BUCKET_NAME, audio, audio_path)
-
-            progress_data[session_id] = {
-                'status': 'processing', 'progress': 20,
-                'message': 'Starting video generation.'
-            }
-
-            # ▶️ 3. Agrupar por prefixo e gerar vídeo
-            from core.ffmpeg_processor import group_images_by_prefix
-            grouped = group_images_by_prefix(image_paths)   # ← NOVO
-            output_filename = filename if filename.endswith('.mp4') else f"{filename}.mp4"
-            output_path     = os.path.join(tmpdir, output_filename)
-            generate_final_video(                           # passa o dict
-                grouped, audio_path, output_path,
-                green_duration, aspect_ratio, progress_callback
-            )
-
-            progress_data[session_id] = {
-                'status': 'uploading', 'progress': 90,
-                'message': 'Uploading final video.'
-            }
-
-            # ▶️ 4. Enviar vídeo ao bucket e criar URL de download
-            video_blob = f"videos/{session_id}.mp4"
             client = storage.Client()
             bucket = client.bucket(BUCKET_NAME)
-            blob   = bucket.blob(video_blob)
-            blob.upload_from_filename(output_path)
-            signed_url = generate_download_url(blob)
 
-        logger.info("✅ Vídeo pronto e URL gerada")
-        progress_data[session_id] = {
-            'status': 'completed',        # mantém compatível com o JS
-            'progress': 100,
-            'message': 'Video created successfully!',
+            for blob_name in images:
+                dst = os.path.join(tmp, os.path.basename(blob_name))
+                bucket.blob(blob_name).download_to_filename(dst)
+                image_paths.append(dst)
+
+            audio_path = None
+            if audio:
+                audio_path = os.path.join(tmp, 'audio.mp3')
+                bucket.blob(audio).download_to_filename(audio_path)
+
+            progress_callback(20)                 # → 20 %
+
+            # ── 2. gerar vídeo ────────────────────────────────────────
+            groups   = group_images_by_prefix(image_paths)
+            out_name = filename if filename.endswith('.mp4') else f'{filename}.mp4'
+            out_path = os.path.join(tmp, out_name)
+
+            generate_final_video(
+                groups, audio_path, out_path,
+                green_seconds, aspect_ratio.replace(':', 'x'),
+                progress_callback
+            )
+            progress_callback(90)                 # → 90 %
+
+            # ── 3. upload + URL ───────────────────────────────────────
+            blob_final = f'videos/{session_id}.mp4'
+            blob       = bucket.blob(blob_final)
+            blob.upload_from_filename(out_path)
+            signed_url = blob.generate_signed_url(3600)
+
+        # ── sucesso ──────────────────────────────────────────────────
+        progress_callback(100)                   # → 100 %
+        progress_data[session_id].update({
+            'status':       'completed',
+            'message':      'Video ready!',
             'download_url': signed_url,
-            'filename': output_filename,
-            'completed': True
-        }
+            'filename':     out_name,
+            'completed':    True,
+        })
+        logger.info("🎉 Vídeo pronto: %s", signed_url)
 
     except Exception as e:
         logger.exception("❌ Erro no processamento")
         progress_data[session_id] = {
-            'status': 'error',
-            'message': str(e),
-            'completed': True
+            'status': 'error', 'message': str(e), 'completed': True
         }
 
 
