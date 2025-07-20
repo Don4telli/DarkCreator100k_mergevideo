@@ -300,7 +300,7 @@ def process_video(data, session_id):
             blob       = bucket.blob(blob_final)
             blob.upload_from_filename(out_path)
             signed_url = blob.generate_signed_url(
-                expiration=datetime.timedelta(hours=1),  # válido por 1 h
+                expiration=timedelta(hours=1),  # válido por 1 h
                 version="v4"
             )
 
