@@ -1,39 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt‑BR">
 <head>
   <meta charset="UTF-8">
   <title>DarkNews Creator 💎</title>
+
+  <!-- fonte Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/lock.css">
-  
+
+  <!-- estilos gerais + overlay -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/lock.css') }}">
 </head>
 <body>
 
-  <!-- 🔒 Overlay de Código -->
-    <div id="lockOverlay">
-      <div id="lockBox">
-        <span id="lockIcon"></span>
-
-          <!-- AGORA type=password p/ ocultar -->
-          <input id="codeInput" type="password" placeholder="Código de acesso" />
-
-          <button id="unlockBtn" class="key-btn"> </button>
-
-      </div>
+  <!-- 🔒 overlay com cadeado + chave -->
+  <div id="lockOverlay">
+    <div id="lockBox">
+      <span id="lockIcon"></span>
+      <input id="codeInput" type="password" placeholder="Código de acesso">
+      <button id="unlockBtn" class="key-btn"></button>
     </div>
+  </div>
 
-
-  <div class="nav">
+  <!-- navbar -->
+  <div class="nav">                 <!-- estrutura mantida do seu HTML original :contentReference[oaicite:0]{index=0} -->
     <button onclick="window.open('https://chat.openai.com')">ChatGPT</button>
     <button onclick="window.open('https://www.tiktok.com')">TikTok</button>
-    <button onclick="window.open('https://fishaudio.com')">Fish Audio</button>
+    <button onclick="window.open('https://fishaudio.com')">Fish&nbsp;Audio</button>
     <button onclick="window.open('https://www.script.tokaudit.io/')">Transcrição</button>
     <button onclick="window.open('https://cobalt.tools/')">Downloader</button>
   </div>
 
-  <div class="container">
+  <!-- formulário principal -->
+  <div class="container">           <!-- idem estrutura original :contentReference[oaicite:1]{index=1} -->
     <h1>DarkNews Creator <span class="glow">💎</span></h1>
 
     <form id="videoForm">
@@ -52,20 +51,22 @@
         <option value="16:9">16:9 (Landscape)</option>
       </select>
 
-      <label>Green Screen Duration (s):</label>
+      <label>Green Screen Duration&nbsp;(s):</label>
       <input type="text" name="green_duration" value="5.0">
 
-      <button class="submit" type="submit">Create Video</button>
+      <button class="submit" type="submit">Create&nbsp;Video</button>
 
+      <!-- progresso -->
       <div id="progressContainer">
         <progress id="progressBar" value="0" max="100"></progress>
-        <div id="progressText">Uploading...</div>
+        <div id="progressText">Uploading…</div>
         <div id="uploadStats"></div>
       </div>
     </form>
   </div>
 
-<script type="module" src="/static/js/lock.js" defer></script>
-
+  <!-- JS: overlay + upload -->
+  <script type="module" src="{{ url_for('static', filename='js/lock.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/upload_progress.js') }}" defer></script>
 </body>
 </html>

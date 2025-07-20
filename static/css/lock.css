@@ -63,3 +63,11 @@
   0%,100%{ transform:scale(1); }
   50%   { transform:scale(1.12); }
 }
+
+@keyframes shakeX{
+  0%,100%{ transform:translateX(0);}
+  20%,60%{ transform:translateX(-4px);}
+  40%,80%{ transform:translateX( 4px);}
+}
+#codeInput.shake{ animation:shakeX .4s linear; }
+

@@ -62,9 +62,13 @@ function tryUnlock() {
       showSite(data.welcomeName);
     })
     .catch(err => {
-      input.classList.add("error");
-      setTimeout(() => input.classList.remove("error"), 1200);
-      alert(err.message);
+  // 1) destaca o campo em vermelho
+    input.classList.add("error");
+    setTimeout(() => input.classList.remove("error"), 800);
+
+    // 2) (opcional) anima uma tremidinha
+    input.classList.add("shake");
+    setTimeout(() => input.classList.remove("shake"), 400);
     })
     .finally(() => (btn.disabled = false));
 }
