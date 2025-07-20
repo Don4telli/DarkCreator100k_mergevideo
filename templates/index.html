@@ -258,9 +258,9 @@
 
     const senhaCorreta = '123';
 
-    if(localStorage.getItem('siteDesbloqueado') === 'true') {
-      overlay.style.display = 'none';
-    }
+    //if(localStorage.getItem('siteDesbloqueado') === 'true') {
+    // overlay.style.display = 'none';
+    //}
 
     function desbloquear() {
       const val = input.value.trim();
@@ -268,7 +268,7 @@
         input.classList.remove('error');
         input.classList.add('success');
         setTimeout(() => {
-          localStorage.setItem('siteDesbloqueado', 'true');
+          //localStorage.setItem('siteDesbloqueado', 'true');
           overlay.style.display = 'none';
         }, 250);
       } else {
