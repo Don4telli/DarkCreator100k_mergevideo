@@ -218,83 +218,79 @@ def create_video():
     })
 
 def process_video(data, session_id, progress_callback):
-    """Gera o vídeo em segundo-plano e atualiza progress_data."""
+    """Process video with data passed from the route"""
     try:
-        # parâmetros vindos do frontend
-        images        = data['image_filenames']
-        audio         = data.get('audio_filename')
-        filename      = data.get('filename', 'my_video.mp4')
-        aspect_ratio  = data.get('aspect_ratio', '9:16')
+        # Now *use* data directly
+        images = data['image_filenames']
+        audio = data.get('audio_filename')
+        filename = data.get('filename', 'my_video.mp4')
+        aspect_ratio = data.get('aspect_ratio', '9:16')
         green_duration = float(data.get('green_duration', 5.0))
-
-        logger.info(f"📂 {len(images)} imagens recebidas")
+        
+        logger.info(f"📂 Processando {len(images)} imagens")
         if audio:
-            logger.info(f"🎵 Áudio recebido: {audio}")
-
-        progress_data[session_id] = {
-            'status': 'downloading', 'progress': 10,
-            'message': 'Downloading images from storage.'
-        }
-
+            logger.info(f"🎵 Áudio fornecido: {audio}")
+        
+        progress_data[session_id] = {'status': 'downloading', 'progress': 10, 'message': 'Downloading images from storage...'}
+        
         with tempfile.TemporaryDirectory() as tmpdir:
-            # ▶️ 1. Baixar cada blob preservando o **nome original**
+            # Baixar imagens do bucket
             image_paths = []
-            for blob_name in images:
+            for i, blob_name in enumerate(images):
+                logger.info(f"⬇️ Baixando imagem {i+1}/{len(images)}: {blob_name}")
                 local_path = os.path.join(tmpdir, os.path.basename(blob_name))
-                logger.info(f"⬇️ Baixando {blob_name} → {local_path}")
                 download_from_bucket(BUCKET_NAME, blob_name, local_path)
                 image_paths.append(local_path)
-
-            # ▶️ 2. Baixar áudio (opcional)
+            
+            # Baixar áudio do bucket (se fornecido)
             audio_path = None
             if audio:
+                logger.info(f"⬇️ Baixando áudio: {audio}")
                 audio_path = os.path.join(tmpdir, "audio.mp3")
                 download_from_bucket(BUCKET_NAME, audio, audio_path)
-
-            progress_data[session_id] = {
-                'status': 'processing', 'progress': 20,
-                'message': 'Starting video generation.'
-            }
-
-            # ▶️ 3. Gerar vídeo
+            
+            progress_data[session_id] = {'status': 'processing', 'progress': 20, 'message': 'Starting video generation...'}
+            
+            # Gerar vídeo
             output_filename = filename if filename.endswith('.mp4') else f"{filename}.mp4"
-            output_path     = os.path.join(tmpdir, output_filename)
-            generate_final_video(
-                image_paths, audio_path, output_path,
-                green_duration, aspect_ratio, progress_callback
-            )
-
-            progress_data[session_id] = {
-                'status': 'uploading', 'progress': 90,
-                'message': 'Uploading final video.'
-            }
-
-            # ▶️ 4. Enviar vídeo ao bucket e criar URL de download
-            video_blob = f"videos/{session_id}.mp4"
+            output_path = os.path.join(tmpdir, output_filename)
+            
+            logger.info("🎬 Iniciando geração do vídeo...")
+            generate_final_video(image_paths, audio_path, output_path, green_duration, aspect_ratio, progress_callback)
+            
+            progress_data[session_id] = {'status': 'uploading', 'progress': 90, 'message': 'Uploading final video...'}
+            
+            # Upload do vídeo para o bucket
+            logger.info("☁️ Fazendo upload do vídeo para o bucket...")
+            video_blob_name = f"videos/{session_id}.mp4"
             client = storage.Client()
-            bucket = client.bucket(BUCKET_NAME)
-            blob   = bucket.blob(video_blob)
-            blob.upload_from_filename(output_path)
-            signed_url = generate_download_url(blob)
-
-        logger.info("✅ Vídeo pronto e URL gerada")
-        progress_data[session_id] = {
-            'status': 'completed',        # mantém compatível com o JS
-            'progress': 100,
-            'message': 'Video created successfully!',
-            'download_url': signed_url,
-            'filename': output_filename,
-            'completed': True
-        }
-
+            try:
+                bucket = client.bucket(BUCKET_NAME)
+                blob = bucket.blob(video_blob_name)
+                blob.upload_from_filename(output_path)
+                
+                # dentro da função que roda em background:
+                signed_url = generate_download_url(blob)
+            finally:
+                client.close()
+            
+            logger.info(f"✅ Vídeo criado e enviado para o bucket com sucesso!")
+            progress_data[session_id] = {
+                'status': 'completed',
+                'progress': 100,
+                'message': 'Video created successfully!',
+                'download_url': signed_url,
+                'filename': output_filename,
+                'completed': True
+            }
+                
     except Exception as e:
-        logger.exception("❌ Erro no processamento")
+        logger.exception(f"❌ Erro ao criar vídeo: {str(e)}")
         progress_data[session_id] = {
             'status': 'error',
             'message': str(e),
             'completed': True
         }
-
 
 @app.route("/")
 def index():

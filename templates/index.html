@@ -250,212 +250,114 @@
       document.getElementById('uploadStats').textContent = '';
 
       try {
-        const imageInput = document.getElementById('imageFiles');
-        const files = Array.from(imageInput.files)
-                   .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      // --- coleta & ordena arquivos ---
+      const imageInput  = document.getElementById('imageFiles');
+      const files = Array.from(imageInput.files)
+                        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      const audioFile   = document.getElementById('audioFile').files[0];
 
-        const audioFile = document.getElementById('audioFile').files[0];
-        totalFiles = files.length + (audioFile ? 1 : 0);
-        
-        progressText.textContent = `Starting upload of ${totalFiles} files…`;
-        
-        // 1) Upload images in parallel (max 60 concurrent)
-        const uploadedNames = [];
-        const maxConcurrent = 60;
-        
-        // Semaphore implementation for controlling concurrency
-        class Semaphore {
-          constructor(count) {
-            this.count = count;
-            this.waiting = [];
-          }
-          
-          async acquire() {
-            if (this.count > 0) {
-              this.count--;
-              return;
-            }
-            
-            return new Promise(resolve => {
-              this.waiting.push(resolve);
-            });
-          }
-          
-          release() {
-            this.count++;
-            if (this.waiting.length > 0) {
-              const resolve = this.waiting.shift();
-              this.count--;
-              resolve();
-            }
+      totalFiles = files.length + (audioFile ? 1 : 0);
+      progressText.textContent = `Starting upload of ${totalFiles} files…`;
+
+      // --- upload paralelo (máx 60) ---
+      const uploadedNames  = [];
+      const maxConcurrent  = 60;
+
+      class Semaphore {
+        constructor(count){ this.count=count; this.waiting=[]; }
+        async acquire(){
+          if(this.count>0){ this.count--; return; }
+          return new Promise(res => this.waiting.push(res));
+        }
+        release(){
+          this.count++;
+          if(this.waiting.length){
+            const res=this.waiting.shift();
+            this.count--; res();
           }
         }
-        
-        const semaphore = new Semaphore(maxConcurrent);
-        
-        const uploadPromises = files.map(async (file, index) => {
-          await semaphore.acquire();
-          try {
-            const { signed_url, filename } = await getSignedUrl(file.name, 'image');
-            await uploadFile(file, signed_url, index);
-            return filename;
-          } finally {
-            semaphore.release();
-          }
-        });
-        
-        const uploadResults = await Promise.all(uploadPromises);
-        uploadedNames.push(...uploadResults);
-        
-
-        // 2) Upload audio if present (after all images are uploaded)
-        let audioName = null;
-        if (audioFile) {
-          progressText.textContent = 'Uploading audio file...';
-          document.getElementById('uploadStats').textContent = 'Processing audio upload';
-          const { signed_url, filename } = await getSignedUrl(audioFile.name, 'audio');
-          await uploadFile(audioFile, signed_url, files.length);
-          audioName = filename;
-        }
-
-        // All uploads complete - show 100%
-        progressBar.value = 100;
-        progressText.textContent = '✅ All files uploaded successfully!';
-        document.getElementById('uploadStats').textContent = `${totalFiles} files uploaded`;
-        
-        // Wait a moment to show completion
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 3) Start video processing - reset progress bar with blue color
-        progressBar.value = 0;
-        progressBar.classList.add('video-processing');
-        progressText.textContent = '🎬 Starting video creation…';
-        document.getElementById('uploadStats').textContent = 'Processing images and audio';
-        
-        const payload = {
-          image_filenames: uploadedNames,
-          audio_filename: audioName,
-          filename: form.elements['filename'].value,
-          aspect_ratio: form.elements['aspect_ratio'].value,
-          green_duration: parseFloat(form.elements['green_duration'].value)
-        };
-        
-        // Start video creation with real-time progress tracking
-        const createRes = await fetch('/create_video', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        
-        if (!createRes.ok) throw new Error(`Create video failed: ${createRes.status}`);
-        const { session_id } = await createRes.json();
-        
-        // Connect to progress stream
-        const eventSource = new EventSource(`/progress/${session_id}`);
-        let download_url = null;
-        
-        eventSource.onmessage = function(event) {
-          const data = JSON.parse(event.data);
-          
-          if (data.status === 'downloading') {
-            progressBar.value = data.progress;
-            progressText.textContent = `📥 ${data.message}`;
-            document.getElementById('uploadStats').textContent = 'Downloading images from cloud storage';
-          } else if (data.status === 'processing') {
-            progressBar.value = 20 + (data.progress * 0.6); // Scale to 20-80% range
-            progressText.textContent = `🎬 ${data.message}`;
-            document.getElementById('uploadStats').textContent = `Processing group ${data.current + 1}/${data.total}`;
-          } else if (data.status === 'uploading') {
-            progressBar.value = data.progress;
-            progressText.textContent = `☁️ ${data.message}`;
-            document.getElementById('uploadStats').textContent = 'Uploading final video to cloud';
-          } else if (data.status === 'completed') {
-            progressBar.value = 100;
-            progressText.textContent = '✅ Video created successfully!';
-            document.getElementById('uploadStats').textContent = 'Ready for download';
-            download_url = data.download_url;
-            eventSource.close();
-            
-            // Show download button instead of auto-download
-            const downloadBtn = document.createElement('button');
-            downloadBtn.textContent = '📥 Download Video';
-            downloadBtn.className = 'btn';
-            downloadBtn.style.cssText = `
-              width: 100%;
-              padding: 15px;
-              background: linear-gradient(135deg, #28a745, #20c997);
-              color: white;
-              border: none;
-              border-radius: 12px;
-              font-size: 18px;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-              margin: 20px 0;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-            `;
-            
-            // Add hover effects
-            downloadBtn.onmouseenter = () => {
-              downloadBtn.style.transform = 'translateY(-2px)';
-              downloadBtn.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)';
-            };
-            downloadBtn.onmouseleave = () => {
-              downloadBtn.style.transform = 'translateY(0)';
-              downloadBtn.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.3)';
-            };
-            
-            downloadBtn.onclick = () => {
-              const a = document.createElement('a');
-              a.href = download_url;
-              a.download = data.filename;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              downloadBtn.textContent = '✅ Download started!';
-              downloadBtn.style.background = 'linear-gradient(135deg, #6c757d, #495057)';
-              downloadBtn.disabled = true;
-            };
-            
-            // Insert download button after progress container
-            progressContainer.parentNode.insertBefore(downloadBtn, progressContainer.nextSibling);
-            
-            progressText.textContent = '✅ Video ready! Click button to download.';
-          } else if (data.status === 'error') {
-            progressText.textContent = '❌ Error occurred';
-            document.getElementById('uploadStats').textContent = data.message;
-            eventSource.close();
-            throw new Error(data.message);
-          }
-        };
-        
-        eventSource.onerror = function() {
-          eventSource.close();
-          throw new Error('Connection to progress stream failed');
-        };
-        
-        // Wait for completion
-         await new Promise((resolve, reject) => {
-           const checkCompletion = () => {
-             if (download_url) {
-               resolve();
-             } else {
-               setTimeout(checkCompletion, 100);
-             }
-           };
-           checkCompletion();
-         });
-        
-      } catch (err) {
-        console.error(err);
-        progressText.textContent = '❌ Error occurred';
-        document.getElementById('uploadStats').textContent = err.message;
-        alert(`Error: ${err.message}`);
-      } finally {
-        form.querySelector('button[type="submit"]').disabled = false;
       }
+      const sem = new Semaphore(maxConcurrent);
+
+      const uploadPromises = files.map(async (file, idx) => {
+        await sem.acquire();
+        try {
+          const { signed_url, filename } = await getSignedUrl(file.name, 'image');
+          await uploadFile(file, signed_url, idx);
+          return filename;
+        } finally { sem.release(); }
+      });
+
+      const uploadResults = await Promise.all(uploadPromises);
+      uploadedNames.push(...uploadResults);   // <-- corrige o typo (. → ...)
+
+      // --- upload do áudio ---
+      let audioName = null;
+      if (audioFile){
+        progressText.textContent = 'Uploading audio file...';
+        const { signed_url, filename } = await getSignedUrl(audioFile.name, 'audio');
+        await uploadFile(audioFile, signed_url, files.length);
+        audioName = filename;
+      }
+
+      // --- chama /create_video e acompanha progresso ---
+      progressBar.value = 100;
+      progressText.textContent = '✅ All files uploaded successfully!';
+      await new Promise(r => setTimeout(r, 800));
+
+      progressBar.value = 0;
+      progressBar.classList.add('video-processing');
+      progressText.textContent = '🎬 Starting video creation…';
+
+      const payload = {
+        image_filenames: uploadedNames,
+        audio_filename:  audioName,
+        filename:        form.elements['filename'].value,
+        aspect_ratio:    form.elements['aspect_ratio'].value,
+        green_duration:  parseFloat(form.elements['green_duration'].value)
+      };
+
+      const createRes = await fetch('/create_video', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (!createRes.ok) throw new Error(`Create video failed: ${createRes.status}`);
+      const { session_id } = await createRes.json();
+
+      const eventSource = new EventSource(`/progress/${session_id}`);
+      let download_url  = null;
+
+      eventSource.onmessage = ({data}) => {
+        const d = JSON.parse(data);
+        if (d.status === 'processing') {
+          progressBar.value = 20 + d.progress * 0.6;
+          progressText.textContent = `🎬 ${d.message}`;
+        } else if (d.status === 'uploading') {
+          progressBar.value = d.progress;
+          progressText.textContent = `☁️ ${d.message}`;
+        } else if (d.status === 'completed') {
+          progressBar.value = 100;
+          progressText.textContent = '✅ Video ready! Click to download.';
+          download_url = d.download_url;
+
+          // botão de download
+          const btn = document.createElement('button');
+          btn.textContent = '📥 Download Video';
+          btn.className   = 'submit';
+          btn.onclick = () => { window.open(download_url, '_blank'); btn.disabled = true; };
+          progressContainer.parentNode.insertBefore(btn, progressContainer.nextSibling);
+          eventSource.close();
+        } else if (d.status === 'error') {
+          alert(`Erro: ${d.message}`); eventSource.close();
+        }
+      };
+
+    } catch (err) {
+      console.error(err);
+      progressText.textContent = '❌ Error occurred';
+      alert(`Error: ${err.message}`);
+    }
+
     });
   </script>
 
