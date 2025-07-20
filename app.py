@@ -198,8 +198,10 @@ def create_video():
     session_id = str(uuid.uuid4())
     progress_data[session_id] = {'status': 'starting', 'progress': 0, 'message': 'Initializing...'}
     
-    def progress_callback(message, current, total):
-        progress_percent = int((current / total) * 100) if total > 0 else 0
+    def progress_callback(percent: int):
+        """Atualiza a barra de progresso (0-100)."""
+        progress_data[session_id]['progress'] = percent
+
         progress_data[session_id] = {
             'status': 'processing',
             'progress': progress_percent,
