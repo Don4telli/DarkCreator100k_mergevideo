@@ -173,33 +173,51 @@ def get_progress(session_id):
         'Connection': 'keep-alive'
     })
 
-@app.route("/create_video", methods=["POST"])
+@app.route('/create_video', methods=['POST'])
 def create_video():
-    logger.info("📥 Recebendo solicitação para criar vídeo...")
-    logger.info(f"📋 Headers da requisição: {dict(request.headers)}")
-    logger.info(f"🔍 Método da requisição: {request.method}")
-    
-    # Pull all data in the view, then hand it to your worker
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'Dados JSON são obrigatórios'}), 400
-    
-    # Validate data
-    image_filenames = data.get('image_filenames', [])
-    if not image_filenames:
-        return jsonify({'error': 'image_filenames é obrigatório'}), 400
-    
-    # Validate that filenames don't contain path traversal
+    """Endpoint que dispara o processamento em background e devolve o session_id."""
+    logger.info("📥 Requisição /create_video recebida")
+    logger.info("🔍 Headers: %s", dict(request.headers))
+
+    # ── 1. Ler e validar o JSON ───────────────────────────────────────────────
+    try:
+        data = request.get_json(force=True)
+    except Exception as e:
+        logger.warning("❌ JSON inválido: %s", e)
+        return jsonify({'error': 'JSON inválido'}), 400
+
+    image_filenames = data.get('image_filenames')
+    if not image_filenames or not isinstance(image_filenames, list):
+        return jsonify({'error': 'image_filenames (lista) é obrigatório'}), 400
+
     audio_filename = data.get('audio_filename')
-    for filename in image_filenames + ([audio_filename] if audio_filename else []):
-        if '../' in filename or '\\' in filename or filename.startswith('/'):
-            logger.warning(f"❌ Tentativa de path traversal detectada: {filename}")
+
+    # path-traversal check
+    for fname in image_filenames + ([audio_filename] if audio_filename else []):
+        if not fname:
+            continue
+        if fname.startswith('/') or '..' in fname or '\\' in fname:
+            logger.warning("❌ Tentativa de path traversal: %s", fname)
             return jsonify({'error': 'Nome de arquivo inválido'}), 400
-    
-    # Generate unique session ID for progress tracking
+
+    # ── 2. Cria session_id e inicia thread ───────────────────────────────────
     session_id = str(uuid.uuid4())
-    progress_data[session_id] = {'status': 'starting', 'progress': 0, 'message': 'Initializing...'}
-    
+    progress_data[session_id] = {'status': 'queued', 'progress': 0}
+
+    thread = threading.Thread(
+        target=process_video,          # NOVA assinatura = 2 args
+        args=(data, session_id),
+        daemon=True
+    )
+    thread.start()
+    logger.info("🚀 Thread iniciada para session_id=%s", session_id)
+
+    # ── 3. Resposta imediata ─────────────────────────────────────────────────
+    return jsonify({
+        'session_id': session_id,
+        'message': 'Video processing started'
+    }), 202
+       
 def progress_callback(percent: int) -> None:
     """
         Atualiza o progresso do job (0-100).
