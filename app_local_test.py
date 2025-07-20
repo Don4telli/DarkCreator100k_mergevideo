@@ -227,12 +227,16 @@ def process_video_local(data, session_id):
         output_name = fname if fname.endswith('.mp4') else f"{fname}.mp4"
         output_path = os.path.join(VIDEOS_DIR, output_name)
 
+        def progress_callback(progress, status, message=""):
+            _set_progress(session_id, status=status, progress=progress, message=message)
+        
         generate_final_video(
-            grouped_images=grouped,
+            image_groups=grouped,
             audio_path=aud_path,
             output_path=output_path,
+            green_sec=int(green_dur),
             aspect_ratio=aspect,
-            green_duration=green_dur
+            progress_cb=progress_callback
         )
 
         _set_progress(session_id, status="completed", progress=100,

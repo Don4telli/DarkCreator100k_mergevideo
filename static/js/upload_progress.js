@@ -1,160 +1,139 @@
 
-document.getElementById('videoForm').addEventListener('submit', async function (e) {
+document.getElementById('videoForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const form = e.target;
-  const submitBtn = form.querySelector('button[type="submit"]');
+  const form        = e.target;
+  const submitBtn   = form.querySelector('button[type="submit"]');
   submitBtn.disabled = true;
 
-  // Inputs — adjust these selectors to match your HTML
-  const imageInput = document.getElementById('imageFiles');    // <input type="file" id="imageFiles" multiple>
-  const audioInput = document.getElementById('audioFile');     // <input type="file" id="audioFile">
-  const aspectRatio  = form.querySelector('[name="aspect_ratio"]').value;
-  const greenDuration = parseFloat(form.querySelector('[name="green_duration"]').value) || 5;
-  
-  // Progress elements
-  const progressWrap = document.getElementById('progressContainer');
-  const bar = document.getElementById('progressBar');
-  const text = document.getElementById('progressText');
-  const downloadLink = document.getElementById('downloadLink');
-  
-  // Initialize progress
-  if (downloadLink) downloadLink.style.display = 'none';
-  if (bar) bar.value = 0;
-  if (progressWrap) progressWrap.style.display = 'block';
+  // Elementos de progresso
+   const bar         = document.getElementById('progressBar');
+   const text        = document.getElementById('progressText');
+   const stats       = document.getElementById('uploadStats');
+   const dlLink      = document.getElementById('downloadLink');
+   dlLink.style.display = 'none';
+   bar.value = 0; text.textContent = '⬆️ Preparando…'; stats.textContent = '';
 
+  // Arquivos
+  const imgFiles = Array.from(document.getElementById('imageFiles').files)
+                        .sort((a,b) => a.name.localeCompare(b.name,undefined,{numeric:true}));
+  const audFile  = document.getElementById('audioFile').files[0] || null;
+
+  const totalImgs = imgFiles.length;
+  const totalFiles = totalImgs + (audFile ? 1 : 0);
+
+  let doneFiles = 0;                       // contador global seguro
+  let lastUi    = 0;                       // throttle ui 100 ms
   const uploadedImageNames = [];
-  let uploadedAudioName = null;
-  
-  const totalFiles = imageInput.files.length + (audioInput.files.length ? 1 : 0);
-  let doneFiles = 0;
+  let   uploadedAudioName  = null;
 
-  // Helper to upload one file via signed URL
-  async function uploadFile(file, fileType) {
-    // 1) get signed URL
-    const res1 = await fetch('/get_signed_url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        filename: file.name,
-        file_type: fileType
-      })
+  // — helper: PUT via signed-URL —
+  async function putSigned(file, type, index, total) {
+    // 1. signed-URL
+    const res = await fetch('/get_signed_url',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({filename:file.name,file_type:type})
     });
-    if (!res1.ok) throw new Error(`Error fetching signed URL: ${await res1.text()}`);
-    const { signed_url, filename } = await res1.json();
-
-    // 2) upload via PUT with fetch
-    await fetch(signed_url, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file
-    });
+    if(!res.ok) throw new Error(await res.text());
+    const { signed_url, filename } = await res.json();
     
-    // Update global progress
+    // 2. upload
+    await fetch(signed_url,{method:'PUT',headers:{'Content-Type':file.type},body:file});
+
+    // 3. atualizar barra (thread-safe)
     doneFiles++;
-    const pct = Math.round((doneFiles / totalFiles) * 100);
-    if (bar) bar.value = pct;
-    if (text) text.textContent = `Uploading (${pct}%)`;
-    
+    const pct = Math.round(doneFiles/totalFiles*100);
+
+    const now = performance.now();
+     if(now - lastUi > 100){               // throttle 100 ms
+       bar.value = pct;
+       if(type==='image'){
+         text.textContent = `⬆️ (${pct}%)`;
+         stats.textContent = `Enviando imagem ${index}/${total}`;
+       } else {
+         text.textContent = `⬆️ Enviando áudio (${pct}%)`;
+         stats.textContent = 'Áudio 1/1';
+       }
+       lastUi = now;
+     }
     return filename;
   }
 
-  try {
-    // Upload all images in parallel (max 60 concurrent)
-    const files = Array.from(imageInput.files)
-                      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    
-    const maxConcurrent = 60;
-    
-    class Semaphore {
-      constructor(count){ this.count=count; this.waiting=[]; }
-      async acquire(){
-        if(this.count>0){ this.count--; return; }
-        return new Promise(res => this.waiting.push(res));
-      }
-      release(){
-        this.count++;
-        if(this.waiting.length){
-          const res=this.waiting.shift();
-          this.count--; res();
-        }
-      }
-    }
-    const sem = new Semaphore(maxConcurrent);
-    
-    const uploadPromises = files.map(async (file) => {
-      await sem.acquire();
-      try {
-        return await uploadFile(file, 'image');
-      } finally { 
-        sem.release(); 
-      }
-    });
-    
-    const uploadResults = await Promise.all(uploadPromises);
-    uploadedImageNames.push(...uploadResults);
+  // — Upload das imagens em paralelo (até 60) —
+  const sem = new class {
+    constructor(max){this.max=max;this.q=[];this.av=max;}
+    async acquire(){ if(this.av>0){this.av--;return;} return new Promise(r=>this.q.push(r)); }
+    release(){ this.av++; if(this.q.length){ this.av--; this.q.shift()(); } }
+  }(60);
 
-    // If audio provided, upload it too
-    if (audioInput.files.length) {
-      uploadedAudioName = await uploadFile(audioInput.files[0], 'audio');
-    }
+  const imgPromises = imgFiles.map((f,i)=> (async()=>{
+    await sem.acquire();
+    try{
+      const name = await putSigned(f,'image', i+1,totalImgs);
+      uploadedImageNames.push(name);
+    }finally{ sem.release(); }
+  })());
 
-    // 4) Call create_video with the filenames
-    const res2 = await fetch('/create_video', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+  // — Upload áudio (se houver) em paralelo —
+  const audPromise = audFile
+    ? putSigned(audFile,'audio',null,null).then(n=>{ uploadedAudioName=n; })
+    : Promise.resolve();
+
+  try{
+    await Promise.all([...imgPromises, audPromise]);
+
+    /* ----------------------------------------------------------------
+       CRIAR VÍDEO
+    ---------------------------------------------------------------- */
+    const res = await fetch('/create_video',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
         image_filenames: uploadedImageNames,
-        audio_filename:  uploadedAudioName,
-        filename:        form.querySelector('[name="filename"]').value || 'video.mp4',
-        aspect_ratio:    aspectRatio,
-        green_duration:  greenDuration
+        audio_filename : uploadedAudioName,
+        filename       : form.filename.value || 'video.mp4',
+        aspect_ratio   : form.aspect_ratio.value,
+        green_duration : parseFloat(form.green_duration.value)||5
       })
     });
-    if (!res2.ok) throw new Error(await res2.text());
-    const { session_id } = await res2.json();               // ← agora vem só isso
+    if(!res.ok) throw new Error(await res.text());
+    const { session_id } = await res.json();
 
-    //5) abrir SSE para receber progresso e link final
-    function listenProgress(id) {
-      const es = new EventSource(`/progress/${id}`);
+    /* ----------------------------------------------------------------
+       ESCUTAR PROGRESSO
+    ---------------------------------------------------------------- */
+    listenProgress(session_id);
 
-      es.onmessage = (ev) => {
-        const d = JSON.parse(ev.data);
+  }catch(err){
+    console.error(err);
+    text.textContent = '❌ '+err.message;
+  }finally{
+    submitBtn.disabled = false;
+  }
 
-        if (d.status === 'processing') {           // 10 – 80 %
-          bar.value = d.progress;
-          text.textContent = `⏳ Processando… ${d.progress}%`;
-        }
-        else if (d.status === 'uploading') {       // 90 %
-          bar.value = d.progress;
-          text.textContent = '⬆️ Enviando…';
-        }
-        else if (d.status === 'completed' && d.download_url) { // 100 %
-          bar.value = 100;
-          text.textContent = '✅ Pronto!';
-          downloadLink.href = d.download_url;
-          downloadLink.style.display = 'inline-block';
-          es.close();
-        }
-        else if (d.status === 'error') {
-          text.textContent = '❌ ' + (d.message || 'Erro');
-          es.close();
-        }
-      };
-
-      es.onerror = () => {
-        text.textContent = '❌ conexão perdida';
+  // ————————————————————————————————————————————————————————————————
+  function listenProgress(id){
+    const es = new EventSource(`/progress/${id}`);
+    es.onmessage = ({data})=>{
+      const d = JSON.parse(data);
+      if(d.status==='processing'){
+        bar.value = d.progress;
+        text.textContent = `🎬 Renderizando… ${d.progress}%`;
+      }else if(d.status==='uploading'){
+        bar.value = d.progress;
+        text.textContent = '⬆️ Enviando vídeo…';
+      }else if(d.status==='completed' && d.download_url){
+        bar.value = 100;
+        text.textContent = '✅ Pronto!';
+        dlLink.href = d.download_url;
+        dlLink.style.display='inline-block';
         es.close();
-      };
-    }
-
-    //6) catch error.
-
-      } catch (err) {
-        console.error(err);
-        if (text) text.textContent = '❌ erro – veja console';
-        alert('❌ Ocorreu um erro: ' + err.message);
-      } finally {
-        submitBtn.disabled = false;
+      }else if(d.status==='error'){
+        text.textContent='❌ '+d.message;
+        es.close();
       }
-  });
+    };
+    es.onerror = ()=>{ text.textContent='❌ SSE perdido'; es.close(); };
+  }
+});
 
