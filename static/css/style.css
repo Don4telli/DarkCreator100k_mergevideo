@@ -115,10 +115,22 @@ progress{
   appearance:none;
   border-radius:8px;
   overflow:hidden;
+  border: none; /* Adicionado para remover borda padrão */
 }
 progress::-webkit-progress-bar{ background:#1a1a1a; }
-progress::-webkit-progress-value{ background:var(--accent); }
-progress.video-processing::-webkit-progress-value{ background:#007bff; }
+
+/* --- EFEITOS DE GLOW NA BARRA --- */
+progress::-webkit-progress-value{
+  background:var(--accent);
+  filter: drop-shadow(0 0 6px var(--accent));
+  transition: all .4s ease; /* Transição suave para cor e filtro */
+}
+
+/* Glow azul para a fase de processamento de vídeo */
+progress.video-processing::-webkit-progress-value{
+  background:#007bff;
+  filter: drop-shadow(0 0 8px #007bff) drop-shadow(0 0 4px #fff);
+}
 
 #progressText{
   margin-top:8px;

@@ -13,7 +13,7 @@ document.getElementById('videoForm').addEventListener('submit', async (e) => {
    const dlLink      = document.getElementById('downloadLink');
 
    progressContainer.style.display = 'block';
-   
+
    dlLink.style.display = 'none';
    bar.value = 0; text.textContent = '⬆️ Preparando…'; stats.textContent = '';
 
@@ -49,17 +49,25 @@ document.getElementById('videoForm').addEventListener('submit', async (e) => {
     const pct = Math.round(doneFiles/totalFiles*100);
 
     const now = performance.now();
-     if(now - lastUi > 100){               // throttle 100 ms
-       bar.value = pct;
-       if(type==='image'){
-         text.textContent = `⬆️ (${pct}%)`;
-         stats.textContent = `Enviando imagem ${index}/${total}`;
-       } else {
-         text.textContent = `⬆️ Enviando áudio (${pct}%)`;
-         stats.textContent = 'Áudio 1/1';
-       }
-       lastUi = now;
-     }
+      // Atualiza a UI se o throttle permitir OU se for o último arquivo
+      if (now - lastUi > 100 || doneFiles === totalFiles) {
+        bar.value = pct;
+        if (type === 'image') {
+          // Usamos doneFiles aqui para o contador ser sempre preciso
+          stats.textContent = `Enviando imagem ${doneFiles > totalImgs ? totalImgs : doneFiles}/${totalImgs}`;
+          text.textContent = `⬆️ (${pct}%)`;
+        } else {
+          text.textContent = `⬆️ Enviando áudio (${pct}%)`;
+          stats.textContent = 'Áudio 1/1';
+        }
+
+        // Se for a atualização final, garante que o texto reflita isso
+        if (doneFiles === totalFiles) {
+          text.textContent = '⬆️ Upload Concluído (100%)';
+          stats.textContent = `Enviados ${totalFiles} arquivos.`;
+        }
+        lastUi = now;
+      }
     return filename;
   }
 
