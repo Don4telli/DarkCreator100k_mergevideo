@@ -8,7 +8,8 @@ body{
   color:#e0e0e0;
   margin:0;
   padding:0;
-  padding-bottom: 80px; /* Garante que o rodapé não cubra o botão "Create Video" */
+  padding-bottom: 5px; /* Garante que o rodapé não cubra o botão "Create Video" */
+  
 }
 
 /* ========== NAVBAR ========== */
@@ -305,43 +306,37 @@ progress.video-processing::-webkit-progress-value{
 
 /* ========== FIXED FOOTER (SIGNATURE) ========== */
 #site-footer {
-  /* Fixa o container externo na parte de baixo da tela */
+  /* --- Posicionamento Fixo --- */
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 20px 0; /* Espaçamento vertical */
-  z-index: 100;
-  /* Essencial: Torna o container externo invisível e não bloqueia cliques */
-  pointer-events: none; 
-}
+  z-index: 50;
 
-.footer-content {
-  /* Centraliza este container, que tem a mesma largura do formulário */
-  width: 450px; /* <<<< MESMA LARGURA DO SEU .container */
-  margin: 0 auto;
+  /* --- Estilo Visual de Barra --- */
+  background: #111; /* Cor de fundo escura, como a navbar */
+  padding: 4px 10px; /* Espaçamento interno (vertical e horizontal) */
+  box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.5); /* Sombra para cima */
+  box-sizing: border-box;
 
-  /* Reativa os cliques para os links dentro dele */
-  pointer-events: auto; 
-}
-
-/* A estilização da versão/assinatura que você já tinha */
-.version-info {
+  /* --- Layout Interno --- */
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* MÁGICA: Empurra os itens para as extremidades */
   align-items: center;
-  font-size: 14px;
+
+  /* --- Tipografia --- */
+  font-size: 8px;
   color: #777;
 }
 
-.version-info .signature a {
+#site-footer .signature a {
   color: #aaa;
-  font-weight: 600;
+  font-weight: 200;
   text-decoration: none;
   transition: all 0.2s ease;
 }
 
-.version-info .signature a:hover {
+#site-footer .signature a:hover {
   color: var(--accent);
   text-shadow: 0 0 8px var(--accent);
 }
