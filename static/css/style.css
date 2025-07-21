@@ -340,3 +340,24 @@ progress.video-processing::-webkit-progress-value{
   color: var(--accent);
   text-shadow: 0 0 8px var(--accent);
 }
+
+/* ========== AJUSTES DE LAYOUT PARA SIDEBAR ========== */
+
+/* Empurra a Navbar para a direita */
+.nav {
+  margin-left: 240px; /* << Deve ser a mesma largura da sidebar */
+}
+
+/* Empurra o Container do formulário para a direita */
+.container {
+  /* A regra 'margin: 40px auto;' é substituída por isso */
+  margin-left: calc(240px + (100% - 240px - 450px) / 2);
+  margin-right: auto;
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
+/* Empurra o rodapé fixo para a direita */
+#site-footer .footer-content {
+  margin-left: calc(240px + (100% - 240px - 450px) / 2);
+}

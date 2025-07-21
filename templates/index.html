@@ -10,8 +10,13 @@
   <!-- estilos -->
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/lock.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css">
 </head>
 <body>
+  <button id="sidebar-toggle" class="sidebar-toggle-btn">
+  <span>Canais</span>
+</button>
+  <div id="sidebar-placeholder"></div>
 
   <!-- 🔒 overlay -->
   <div id="lockOverlay">
@@ -80,7 +85,8 @@
   <!-- scripts -->
   <script type="module" src="/static/js/lock.js" defer></script>
   <script src="/static/js/upload_progress.js" defer></script>
-  <script src="/static/js/ui_interactions.js" defer></script> 
+  <script src="/static/js/ui_interactions.js" defer></script>
+  <script src="/static/js/sidebar.js" defer></script>
 
   <!-- RODAPÉ FIXO -->
   <div id="site-footer" class="version-info">
