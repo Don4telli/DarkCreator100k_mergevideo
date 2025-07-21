@@ -42,14 +42,14 @@ body{
   padding:40px;
   border-radius:16px;
   box-shadow:0 0 30px rgba(255,77,0,.2);
-  width:480px;
+  width:450px;
   margin:40px auto;
-  text-align: center;
+  /* A propriedade text-align: center foi removida para permitir alinhamento à esquerda. */
 }
 
 /* ========== TÍTULOS ========== */
 h1{
-  text-align:center;
+  text-align:center; /* Garantimos que o título principal continue centralizado */
   font-weight:700;
   font-size:24px;
   color:#fff;
@@ -58,19 +58,24 @@ h1{
 h1 .glow{
   display:inline-block;
   color:#fff;
-  text-shadow:0 0 6px var(--accent),0 0 12px var(--accent);
+  text-shadow:0 0 6px var(--accent),0 0 20px var(--accent);
+  animation: pulse 1.5s ease-in-out infinite; /* <<<< LINHA ADICIONADA */
 }
 
 /* ========== LABELS & CAMPOS ========== */
 label{
   display:block;
-  margin:20px 0 6px;
+  margin:25px auto 4px;
   font-weight:500;
-  color:#b0b0b0;
+  color: #22d702; /* <<<< VERDE "TERMINAL" */
+  text-align: left; /* <<<< Alinha o texto à esquerda */
+  font-size: 9px;
+  position: relative; /* Necessário para o pseudo-elemento da barra */
 }
+
 input,select{
-  max-width: 100%;  /* Mantém a segurança em telas pequenas */
-  width: 500px;     /* <<<< MUDANÇA PRINCIPAL AQUI */
+  max-width: 100%;
+  width: 100%; /* <<<< MUDADO PARA 100% para alinhar com os labels */
   padding: 10px;
   background: #1a1a1a;
   border: 1px solid #444;
@@ -78,13 +83,14 @@ input,select{
   color: #e0e0e0;
   font-size: 14px;
   outline: none;
-  box-sizing: border-box; /* Evita que o padding afete a largura total */
+  box-sizing: border-box;
 }
 
 /* Centraliza o TEXTO DENTRO dos campos, exceto o de arquivo */
 input:not([type="file"]) {
-    text-align: center;
+    text-align: left;
 }
+
 input:focus,select:focus{
   border-color:var(--accent);
   box-shadow:0 0 6px var(--accent);
@@ -101,7 +107,7 @@ input::file-selector-button{
 button.submit{
   margin-top:30px;
   max-width: 100%;
-  width: 500px; /* <<<< MESMA LARGURA DOS INPUTS */
+  width: 100%; /* <<<< MUDADO PARA 100% para alinhar com os outros campos */
   padding:12px;
   background:var(--accent);
   border:none;

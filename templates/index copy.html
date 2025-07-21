@@ -36,13 +36,22 @@
     <h1>DarkNews Creator <span class="glow">💎</span></h1>
 
     <form id="videoForm">
-      <label>Selecione as Imagens:</label>
+      <label for="imageFiles">Selecionar Imagens:</label>
+      <label for="imageFiles" class="custom-file-input">
+          <span class="file-input-button">Escolher arquivos</span>
+          <span class="file-input-text" id="imageFilesText">Nenhum arquivo selecionado</span>
+      </label>
       <input id="imageFiles" type="file" name="images" accept=".jpeg,.jpg,.png" multiple required>
 
-      <label>Selecione o Audio:</label>
+      <!-- NOVO BLOCO DE ÁUDIO -->
+      <label for="audioFile">Selecionar Áudio (opcional):</label>
+      <label for="audioFile" class="custom-file-input">
+          <span class="file-input-button">Escolher arquivo</span>
+          <span class="file-input-text" id="audioFileText">Nenhum arquivo selecionado</span>
+      </label>
       <input id="audioFile" type="file" name="audio" accept=".mp3">
 
-      <label>Nome do Video:</label>
+      <label></label>
       <input type="text" name="filename" value="my_video.mp4">
 
       <label></label>

@@ -105,7 +105,7 @@ document.getElementById('videoForm').addEventListener('submit', async (e) => {
         audio_filename : uploadedAudioName,
         filename       : form.filename.value || 'video.mp4',
         aspect_ratio   : form.aspect_ratio.value,
-        green_duration : parseFloat(form.green_duration.value)||5
+        green_duration : parseFloat(document.querySelector('input[name="green_duration"]').value)
       })
     });
     if(!res.ok) throw new Error(await res.text());
