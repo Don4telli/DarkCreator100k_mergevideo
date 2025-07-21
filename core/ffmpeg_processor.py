@@ -84,7 +84,7 @@ def _make_block(images: List[str], audio: str, out_mp4: str,
                 f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2"),
         "-pix_fmt", "yuv420p",
         #"-c:v", "libx264", "-preset", "veryfast",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
         "-profile:v", "high", "-level", "4.2",
         vid_tmp
     ])
@@ -146,10 +146,13 @@ def generate_final_video(image_groups,
         parts.append(blk)
 
         if i != total:
-            progress_cb(pct + 2, "processing", "Gerando tela verde…")
-            green = os.path.join(tmpd, f"green_{i}.mp4")
-            _green(green, green_sec, res)
-            parts.append(green)
+            # Só gera a tela verde se a duração for maior que 0
+            if i != total and green_sec > 0:
+                progress_cb(pct + 2, "processing", "Gerando tela verde…")
+                green = os.path.join(tmpd, f"green_{i}.mp4")
+                _green(green, green_sec, res)
+                parts.append(green)
+
 
     # após todos os blocos
     progress_cb(88, "processing", "Concatenando blocos…")

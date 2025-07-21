@@ -42,7 +42,7 @@ body{
   padding:40px;
   border-radius:16px;
   box-shadow:0 0 30px rgba(255,77,0,.2);
-  width:480px;
+  width:450px;
   margin:40px auto;
   text-align: center;
 }
@@ -189,7 +189,7 @@ progress.video-processing::-webkit-progress-value{
 .aspect-ratio-selector {
   display: flex;
   justify-content: center;
-  gap: 105px; /* Espaçamento entre os botões */
+  gap: 80px; /* Espaçamento entre os botões */
   margin-top: 10px;
   align-items: center; /* Alinha os botões verticalmente */
 }
@@ -245,38 +245,31 @@ progress.video-processing::-webkit-progress-value{
 }
 
 /* ========== TOGGLE SWITCH (Green Screen) ========== */
-/* REMOVEMOS O .toggle-container que não existe mais */
-
+.toggle-container {
+  margin-top: 40px; /* AUMENTADO para mais espaço */
+  margin-bottom: 20px;
+}
 .toggle-btn {
-  /* Fazemos ele ter o mesmo tamanho do botão 16:9 para consistência */
-  width: 85px;
-  height: 85px;
-  padding: 5px; /* Ajuste no padding */
-  
+  width: 75px;
+  padding: 10px 0;
   font-family: 'Inter', sans-serif;
-  font-weight: 600; /* Deixamos um pouco mais fino que o 700 */
-  font-size: 13px;  /* Reduzimos a fonte para caber em duas linhas */
-  line-height: 1.3; /* Melhora o espaçamento entre as linhas */
-  
-  border-radius: 12px; /* Mesmo radius dos outros botões */
+  font-weight: 75px;
+  font-size: 9px;
+  border-radius: 10px;
   cursor: pointer;
   border: 2px solid;
   transition: all 0.3s ease;
-  
-  /* ESTILO PADRÃO (OFF) */
   background: transparent;
   border-color: #5c2c2c;
   color: #a15555;
   text-shadow: none;
 }
-
 #greenScreenStatus {
   display: inline-block;
-  font-weight: 700; /* Damos destaque para o ON/OFF */
+  width: 35px;
+  text-align: left;
   transition: all 0.3s ease;
 }
-
-/* ESTILO ATIVO (ON) */
 .toggle-btn.is-on {
   background-color: #113c1f;
   border-color: #28a745;
@@ -284,14 +277,11 @@ progress.video-processing::-webkit-progress-value{
   text-shadow: 0 0 8px #28a745;
   box-shadow: 0 0 15px rgba(40, 167, 69, 0.6);
 }
-
-/* EFEITOS DE HOVER (que você já tinha) */
 .toggle-btn:not(.is-on):hover {
   border-color: #ff4d4d;
   color: #ff8a8a;
   box-shadow: 0 0 15px rgba(255, 50, 50, 0.7);
 }
-
 .toggle-btn.is-on:hover {
   border-color: #3eff71;
   box-shadow: 0 0 25px rgba(40, 167, 69, 0.9);

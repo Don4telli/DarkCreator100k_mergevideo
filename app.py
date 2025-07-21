@@ -165,7 +165,7 @@ def process_video(data, session_id):
         audio        = data.get('audio_filename')
         filename     = data.get('filename', 'my_video.mp4')
         aspect_ratio = data.get('aspect_ratio', '9:16')
-        green_sec    = float(data.get('green_duration', 3))
+        green_sec    = float(data.get('green_duration', 10.0)) # alterar no ui_interactions.js, linha 36
 
         logger.info("📥 %d imagens; áudio: %s", len(images), bool(audio))
         _set_progress(session_id, status="downloading", progress=0)
