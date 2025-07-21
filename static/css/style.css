@@ -8,7 +8,7 @@ body{
   color:#e0e0e0;
   margin:0;
   padding:0;
-  
+  padding-bottom: 80px; /* Garante que o rodapé não cubra o botão "Create Video" */
 }
 
 /* ========== NAVBAR ========== */
@@ -301,4 +301,47 @@ progress.video-processing::-webkit-progress-value{
 .toggle-btn.is-on:hover {
   border-color: #3eff71;
   box-shadow: 0 0 25px rgba(40, 167, 69, 0.9);
+}
+
+/* ========== FIXED FOOTER (SIGNATURE) ========== */
+#site-footer {
+  /* Fixa o container externo na parte de baixo da tela */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px 0; /* Espaçamento vertical */
+  z-index: 100;
+  /* Essencial: Torna o container externo invisível e não bloqueia cliques */
+  pointer-events: none; 
+}
+
+.footer-content {
+  /* Centraliza este container, que tem a mesma largura do formulário */
+  width: 450px; /* <<<< MESMA LARGURA DO SEU .container */
+  margin: 0 auto;
+
+  /* Reativa os cliques para os links dentro dele */
+  pointer-events: auto; 
+}
+
+/* A estilização da versão/assinatura que você já tinha */
+.version-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #777;
+}
+
+.version-info .signature a {
+  color: #aaa;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.version-info .signature a:hover {
+  color: var(--accent);
+  text-shadow: 0 0 8px var(--accent);
 }
