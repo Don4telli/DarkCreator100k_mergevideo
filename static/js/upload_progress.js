@@ -6,10 +6,14 @@ document.getElementById('videoForm').addEventListener('submit', async (e) => {
   submitBtn.disabled = true;
 
   // Elementos de progresso
+  
    const bar         = document.getElementById('progressBar');
    const text        = document.getElementById('progressText');
    const stats       = document.getElementById('uploadStats');
    const dlLink      = document.getElementById('downloadLink');
+
+   progressContainer.style.display = 'block';
+   
    dlLink.style.display = 'none';
    bar.value = 0; text.textContent = '⬆️ Preparando…'; stats.textContent = '';
 
