@@ -123,24 +123,30 @@ document.getElementById('videoForm').addEventListener('submit', async (e) => {
     submitBtn.disabled = false;
   }
 
-  // ————————————————————————————————————————————————————————————————
+  // ———————————————————————————————————————————————————————————————— 
   function listenProgress(id){
     const es = new EventSource(`/progress/${id}`);
+    const bar = document.getElementById('progressBar'); // Garante que temos a referência da barra aqui
+
     es.onmessage = ({data})=>{
       const d = JSON.parse(data);
       if(d.status==='processing'){
+        bar.classList.add('video-processing'); // Adiciona classe para o glow azul
         bar.value = d.progress;
         text.textContent = `🎬 Renderizando… ${d.progress}%`;
       }else if(d.status==='uploading'){
+        bar.classList.remove('video-processing'); // Remove classe, volta para o glow laranja
         bar.value = d.progress;
         text.textContent = '⬆️ Enviando vídeo…';
       }else if(d.status==='completed' && d.download_url){
+        bar.classList.add('video-processing'); // Mantém o glow azul no estado final
         bar.value = 100;
         text.textContent = '✅ Pronto!';
         dlLink.href = d.download_url;
         dlLink.style.display='inline-block';
         es.close();
       }else if(d.status==='error'){
+        bar.classList.remove('video-processing');
         text.textContent='❌ '+d.message;
         es.close();
       }
