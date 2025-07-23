@@ -8,8 +8,7 @@ body{
   color:#e0e0e0;
   margin:0;
   padding:0;
-  padding-bottom: 5px; /* Garante que o rodapé não cubra o botão "Create Video" */
-  
+  padding-bottom: 60px; /* Mantém o espaço para o rodapé */
 }
 
 /* ========== NAVBAR ========== */
@@ -35,17 +34,6 @@ body{
   background:var(--accent);
   color:#0a0a0a;
   box-shadow:0 0 10px var(--accent);
-}
-
-/* ========== FORM CONTAINER ========== */
-.container{
-  background:#101010;
-  padding:40px;
-  border-radius:16px;
-  box-shadow:0 0 30px rgba(255,77,0,.2);
-  width:450px;
-  margin:40px auto;
-  /* A propriedade text-align: center foi removida para permitir alinhamento à esquerda. */
 }
 
 /* ========== TÍTULOS ========== */
@@ -304,34 +292,38 @@ progress.video-processing::-webkit-progress-value{
   box-shadow: 0 0 25px rgba(40, 167, 69, 0.9);
 }
 
+/* ========== FORM CONTAINER ========== */
+.container{
+  background:#101010;
+  padding:40px;
+  border-radius:16px;
+  box-shadow:0 0 30px rgba(255,77,0,.2);
+  width:450px;
+  margin:40px auto; /* << ESSA LINHA GARANTE A CENTRALIZAÇÃO */
+}
+
 /* ========== FIXED FOOTER (SIGNATURE) ========== */
+/* A regra original e correta para o rodapé */
 #site-footer {
-  /* --- Posicionamento Fixo --- */
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
   z-index: 50;
-
-  /* --- Estilo Visual de Barra --- */
-  background: #111; /* Cor de fundo escura, como a navbar */
-  padding: 4px 10px; /* Espaçamento interno (vertical e horizontal) */
-  box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.5); /* Sombra para cima */
+  background: #111;
+  padding: 8px 40px; /* Espaçamento ajustado */
+  box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
-
-  /* --- Layout Interno --- */
   display: flex;
-  justify-content: space-between; /* MÁGICA: Empurra os itens para as extremidades */
+  justify-content: space-between;
   align-items: center;
-
-  /* --- Tipografia --- */
-  font-size: 8px;
+  font-size: 14px; /* Tamanho ajustado */
   color: #777;
 }
 
 #site-footer .signature a {
   color: #aaa;
-  font-weight: 200;
+  font-weight: 600;
   text-decoration: none;
   transition: all 0.2s ease;
 }
@@ -340,22 +332,7 @@ progress.video-processing::-webkit-progress-value{
   color: var(--accent);
   text-shadow: 0 0 8px var(--accent);
 }
-
 /* ========== AJUSTES DE LAYOUT PARA SIDEBAR ========== */
-
-/* Empurra a Navbar para a direita */
-.nav {
-  margin-left: 240px; /* << Deve ser a mesma largura da sidebar */
-}
-
-/* Empurra o Container do formulário para a direita */
-.container {
-  /* A regra 'margin: 40px auto;' é substituída por isso */
-  margin-left: calc(240px + (100% - 240px - 450px) / 2);
-  margin-right: auto;
-  margin-top: 40px;
-  margin-bottom: 40px;
-}
 
 /* Empurra o rodapé fixo para a direita */
 #site-footer .footer-content {

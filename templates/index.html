@@ -3,22 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <title>DarkNews Creator 💎</title>
-
-  <!-- Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-
-  <!-- estilos -->
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/lock.css">
   <link rel="stylesheet" href="/static/css/sidebar.css">
 </head>
 <body>
+
+  <!-- Sidebar e seus controles -->
   <button id="sidebar-toggle" class="sidebar-toggle-btn">
-  <span>Canais</span>
-</button>
+    <span>Canais</span>
+  </button>
   <div id="sidebar-placeholder"></div>
 
-  <!-- 🔒 overlay -->
+  <!-- Overlay de Bloqueio -->
   <div id="lockOverlay">
     <div id="lockBox">
       <span id="lockIcon"></span>
@@ -27,7 +25,7 @@
     </div>
   </div>
 
-  <!-- navbar -->
+  <!-- Navbar -->
   <div class="nav">
     <button onclick="window.open('https://chat.openai.com')">ChatGPT</button>
     <button onclick="window.open('https://www.tiktok.com')">TikTok</button>
@@ -36,42 +34,28 @@
     <button onclick="window.open('https://cobalt.tools/')">Downloader</button>
   </div>
 
-  <!-- form -->
+  <!-- Container do Formulário -->
   <div class="container">
     <h1>DarkNews Creator <span class="glow">💎</span></h1>
-
     <form id="videoForm">
+      <!-- ... (todo o seu formulário, exatamente como estava) ... -->
       <label>Selecione as Imagens:</label>
       <input id="imageFiles" type="file" name="images" accept=".jpeg,.jpg,.png" multiple required>
-
       <label>Selecione o Audio:</label>
       <input id="audioFile" type="file" name="audio" accept=".mp3">
-
       <label>Nome do Video:</label>
       <input type="text" name="filename" value="my_video.mp4">
-
       <label></label>
       <div class="aspect-ratio-selector">
-        <!-- Botão 9:16 -->
-        <button type="button" class="aspect-btn is-portrait active" data-value="9:16">
-          9:16
-        </button>
-        <!-- Botão 16:9 -->
-        <button type="button" class="aspect-btn is-landscape" data-value="16:9">
-          16:9
-        </button>
-        <!-- Botão de Green Screen no lugar do 1:1 -->
+        <button type="button" class="aspect-btn is-portrait active" data-value="9:16">9:16</button>
+        <button type="button" class="aspect-btn is-landscape" data-value="16:9">16:9</button>
         <button type="button" id="greenScreenToggle" class="toggle-btn" data-status="off">
           Green Screen<br><span id="greenScreenStatus">OFF</span>
         </button>
-        
-        <!-- Inputs ocultos ficam aqui -->
         <input type="hidden" name="aspect_ratio" value="9:16">
         <input type="hidden" name="green_duration" value="0">
       </div>
-
       <button class="submit" type="submit">Create Video</button>
-
       <div id="progressContainer">
         <progress id="progressBar" value="0" max="100"></progress>
         <div id="progressText">Uploading…</div>
@@ -80,15 +64,14 @@
       </div>
     </form>
   </div>
-  </div>
 
-  <!-- scripts -->
+  <!-- Scripts -->
   <script type="module" src="/static/js/lock.js" defer></script>
   <script src="/static/js/upload_progress.js" defer></script>
-  <script src="/static/js/ui_interactions.js" defer></script>
+  <script src="/static/js/ui_interactions.js" defer></script> 
   <script src="/static/js/sidebar.js" defer></script>
 
-  <!-- RODAPÉ FIXO -->
+  <!-- Rodapé Fixo (fora do .container) -->
   <div id="site-footer" class="version-info">
     <span class="version">V 1.0.0</span>
     <span class="signature">by <a href="https://github.com/Don4telli" target="_blank">DonMain</a></span>

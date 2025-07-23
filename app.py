@@ -128,17 +128,19 @@ def create_video():
     logger.info("📥 /create_video recebido")
     try:
         data = request.get_json(force=True)
-    except Exception:
+        if not data:
+            logger.warning("⚠️ Requisição /create_video recebida com JSON vazio.")
+            return jsonify(error="Corpo da requisição não pode ser vazio"), 400
+    except Exception as e:
+        # Loga o corpo da requisição que não pôde ser parseado
+        logger.error("❌ Erro ao parsear JSON. Erro: %s. Corpo recebido: %s", e, request.data)
         return jsonify(error="JSON inválido"), 400
 
     imgs = data.get('image_filenames')
     if not imgs or not isinstance(imgs, list):
+        # Loga o JSON que foi recebido mas é inválido
+        logger.warning("⚠️ 'image_filenames' ausente ou não é uma lista. Dados recebidos: %s", data)
         return jsonify(error="image_filenames (lista) é obrigatório"), 400
-
-    aud = data.get('audio_filename')
-    for f in imgs + ([aud] if aud else []):
-        if f and (f.startswith('/') or '..' in f or '\\' in f):
-            return jsonify(error="Nome de arquivo inválido"), 400
 
     session_id = str(uuid.uuid4())
     _set_progress(session_id, status="queued", progress=0, completed=False)

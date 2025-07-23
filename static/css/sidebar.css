@@ -54,8 +54,6 @@
   border-bottom-right-radius: 8px;
   padding: 15px 2px;
   cursor: pointer;
-  
-  /* Sombra para destacar */
   box-shadow: 2px 0 10px rgba(0,0,0,0.5);
   transition: all 0.3s ease;
 }
@@ -82,29 +80,38 @@
 }
 
 .channel-list li a {
-  display: flex; /* ESSENCIAL: Alinha o ícone e o texto lado a lado */
-  align-items: center; /* Centraliza o texto verticalmente com o ícone */
+  display: flex;
+  align-items: center;
   padding: 10px;
   border-radius: 8px;
   text-decoration: none;
   margin-bottom: 5px;
-  transition: background-color 0.2s ease;
+  /* Transição suave para o novo efeito de brilho */
+  transition: background-color 0.2s ease, box-shadow 0.3s ease; 
 }
 
+/* O EFEITO DE FUMAÇA NEON ACONTECE AQUI */
 .channel-list li a:hover {
   background-color: #1a1a1a;
+  box-shadow: 
+    /* 1. Brilho interno sutil (opcional, mas dá profundidade) */
+    inset 0 0 5px rgba(255, 77, 0, 0.4),
+    /* 2. Auréola neon principal */
+    0 0 8px var(--accent),
+    /* 3. Névoa esfumaçada externa e mais ampla */
+    0 0 25px rgba(255, 77, 0, 0.5);
 }
 
 /* Círculo da foto de perfil */
 .channel-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%; /* << A MÁGICA PARA FAZER O CÍRCULO */
-  background-size: cover; /* Garante que a imagem preencha o círculo */
-  background-position: center; /* Centraliza a imagem no círculo */
-  margin-right: 15px; /* Espaço entre o ícone e o nome */
-  flex-shrink: 0; /* Impede que o círculo se achate */
-  border: 1px solid #333; /* Borda sutil (opcional) */
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  margin-right: 15px;
+  flex-shrink: 0;
+  border: 1px solid #333;
 }
 
 /* Nome do canal */
@@ -112,7 +119,6 @@
   color: #e0e0e0;
   font-weight: 500;
   font-size: 15px;
-  /* As 3 linhas abaixo garantem que nomes longos não quebrem o layout */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
